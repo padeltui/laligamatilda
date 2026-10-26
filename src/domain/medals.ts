@@ -25,9 +25,10 @@ export interface MedalRow {
 export function medalTable(rounds: readonly SeasonRound[]): MedalRow[] {
   const rows = new Map<PlayerId, MedalRow & { positionSum: number }>();
 
-  for (const { ranking } of rounds) {
+  for (const { ranking, unplayed } of rounds) {
     const groupIds = [...ranking.keys()].sort();
     groupIds.forEach((groupId, level) => {
+      if (unplayed?.has(groupId)) return;
       ranking.get(groupId)!.forEach((player, i) => {
         const row = rows.get(player) ?? {
           player, gold: 0, silver: 0, bronze: 0, titles: 0, goldTitles: 0,

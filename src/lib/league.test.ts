@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RoundMatch } from './db';
-import { categoryOf, formatSets, kindLabel, playedMatches, proposeNextGroups, roundProgress, roundStandings } from './league';
+import { categoryOf, formatSets, kindLabel, playedMatches, proposeNextGroups, roundProgress, roundStandings, unplayedGroups } from './league';
 
 const match = (id: string, pair1: [string, string], pair2: [string, string], sets: [number, number][], estado: RoundMatch['estado'] = 'jugado'): RoundMatch => ({
   id,
@@ -32,7 +32,7 @@ describe('league', () => {
   it('propone los grupos siguientes: suben los 2 primeros y bajan los 2 últimos', () => {
     const matches = [
       match('1', ['a1', 'a2'], ['a3', 'a4'], [[6, 1], [6, 1]]),
-      match('2', ['b3', 'b4'], ['b1', 'b2'], [[6, 1], [6, 1]]),
+      { ...match('2', ['b3', 'b4'], ['b1', 'b2'], [[6, 1], [6, 1]]), kind: 'B' },
     ];
     const next = proposeNextGroups({ groups, matches });
     const withFinal = proposeNextGroups({ groups, matches, finalRanking: new Map([['A', ['a4', 'a3', 'a2', 'a1']], ['B', ['b1', 'b2', 'b3', 'b4']]]) });
@@ -67,3 +67,20 @@ describe('roundProgress', () => {
     expect(kindLabel('C')).toBe('Bronce');
   });
 });
+
+describe('grupos no disputados', () => {
+  it('un grupo sin partidos jugados no tiene movimientos con sus vecinos', () => {
+    const three = [...groups, { id: 'C', players: ['c1', 'c2', 'c3', 'c4'] }];
+    const matches = [
+      match('1', ['a1', 'a2'], ['a3', 'a4'], [[6, 1], [6, 1]]),
+      { ...match('2', ['b1', 'b2'], ['b3', 'b4'], [[6, 1], [6, 1]]), kind: 'B' },
+      { ...match('3', ['c1', 'c2'], ['c3', 'c4'], [], 'pendiente'), kind: 'C' },
+    ];
+    expect([...unplayedGroups({ groups: three, matches })]).toEqual(['C']);
+    const next = proposeNextGroups({ groups: three, matches });
+    expect([...next[2].players].sort()).toEqual(['c1', 'c2', 'c3', 'c4']);
+    expect(next[1].players).toHaveLength(4);
+    expect(next[1].players.filter((p) => p.startsWith('b'))).toHaveLength(2);
+  });
+});
+

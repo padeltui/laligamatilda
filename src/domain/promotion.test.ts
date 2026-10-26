@@ -31,3 +31,28 @@ describe('nextGroups', () => {
     expect(() => nextGroups(groups, new Map([...ranking, ['B', ['b1', 'b2', 'b3', 'x']]]))).toThrow(/no coincide/);
   });
 });
+
+describe('nextGroups con grupos congelados', () => {
+  const groups = [
+    { id: 'A', players: ['a1', 'a2', 'a3', 'a4'] },
+    { id: 'B', players: ['b1', 'b2', 'b3', 'b4'] },
+    { id: 'C', players: ['c1', 'c2', 'c3', 'c4'] },
+  ];
+  const ranking = new Map([
+    ['A', ['a1', 'a2', 'a3', 'a4']],
+    ['B', ['b1', 'b2', 'b3', 'b4']],
+    ['C', ['c1', 'c2', 'c3', 'c4']],
+  ]);
+
+  it('si Bronce no ha jugado, solo hay movimientos entre Oro y Plata', () => {
+    expect(nextGroups(groups, ranking, 2, new Set(['C']))).toEqual([
+      { id: 'A', players: ['a1', 'a2', 'b1', 'b2'] },
+      { id: 'B', players: ['a3', 'a4', 'b3', 'b4'] },
+      { id: 'C', players: ['c1', 'c2', 'c3', 'c4'] },
+    ]);
+  });
+
+  it('si Plata no ha jugado, nadie se mueve', () => {
+    expect(nextGroups(groups, ranking, 2, new Set(['B']))).toEqual(groups);
+  });
+});

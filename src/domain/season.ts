@@ -15,6 +15,8 @@ export interface SeasonRound {
   round: number;
   /** Jugadores de cada grupo en su orden final. */
   ranking: ReadonlyMap<GroupId, readonly PlayerId[]>;
+  /** Grupos que no llegaron a jugar: sus jugadores no suman puntos ni medalla en esa vuelta. */
+  unplayed?: ReadonlySet<GroupId>;
 }
 
 export interface SeasonRoundResult {
@@ -41,8 +43,9 @@ export function seasonStandings(rounds: readonly SeasonRound[]): SeasonRow[] {
   const ordered = [...rounds].sort((a, b) => a.round - b.round);
   const rows = new Map<PlayerId, SeasonRow>();
 
-  for (const { round, ranking } of ordered) {
+  for (const { round, ranking, unplayed } of ordered) {
     for (const [group, players] of ranking) {
+      if (unplayed?.has(group)) continue;
       players.forEach((player, i) => {
         const row = rows.get(player) ?? { player, points: 0, rounds: [], position: 0, tiedWithPrevious: false };
         const points = seasonPoints(group, i + 1);

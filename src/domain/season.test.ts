@@ -62,4 +62,9 @@ describe('seasonStandings', () => {
     expect(tied.map((r) => r.points)).toEqual([12, 12]);
     expect(tied[1].tiedWithPrevious).toBe(true);
   });
+
+  it('los grupos no disputados no suman puntos', () => {
+    const rows = seasonStandings([{ ...round1, unplayed: new Set(['B']) }]);
+    expect(rows.map((r) => r.player).sort()).toEqual(['a1', 'a2', 'a3', 'a4']);
+  });
 });

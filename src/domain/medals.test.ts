@@ -50,4 +50,11 @@ describe('medalTable', () => {
   it('sin vueltas cerradas está vacío', () => {
     expect(medalTable([])).toEqual([]);
   });
+
+  it('los grupos no disputados no dan medalla, y Oro sigue siendo oro', () => {
+    const table = medalTable([{ ...rounds[0], unplayed: new Set(['C']) }]);
+    expect(table.some((r) => r.player === 'z1')).toBe(false);
+    expect(table.find((r) => r.player === 'marcos')).toMatchObject({ gold: 1 });
+    expect(table.find((r) => r.player === 'ivan')).toMatchObject({ silver: 1 });
+  });
 });

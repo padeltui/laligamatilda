@@ -28,9 +28,19 @@ export function groupOrder(data: RankingSource): Map<GroupId, PlayerId[]> {
   return new Map([...roundStandings(data)].map(([id, rows]) => [id, rows.map((row) => row.player)]));
 }
 
-/** Grupos de la siguiente vuelta aplicando los ascensos y descensos. */
+/** Grupos que no han jugado ningún partido en la vuelta («no disputados»). */
+export function unplayedGroups(data: Pick<RoundData, 'groups' | 'matches'>): Set<GroupId> {
+  return new Set(data.groups.filter((g) => !data.matches.some((m) => m.kind === g.id && m.estado === 'jugado')).map((g) => g.id));
+}
+
+/** ¿Hay subidas y bajadas entre estos dos grupos? No, si alguno no se ha disputado. */
+export function boundaryOpen(unplayed: ReadonlySet<GroupId>, upper: GroupId, lower: GroupId): boolean {
+  return !unplayed.has(upper) && !unplayed.has(lower);
+}
+
+/** Grupos de la siguiente vuelta aplicando los ascensos y descensos (sin tocar los grupos no disputados). */
 export function proposeNextGroups(data: RankingSource, order: ReadonlyMap<GroupId, readonly PlayerId[]> = groupOrder(data)): Group[] {
-  return nextGroups(data.groups, order, PROMOTIONS);
+  return nextGroups(data.groups, order, PROMOTIONS, unplayedGroups(data));
 }
 
 /** Todos los partidos con resultado, para Elo y estadísticas. */
@@ -47,7 +57,7 @@ export function historyMatches(history: readonly RoundData[]): HistoryMatch[] {
 export function closedRounds(history: readonly RoundData[], seasonId?: string): SeasonRound[] {
   return history
     .filter((data) => data.round.estado === 'cerrada' && (seasonId === undefined || data.round.temporada_id === seasonId))
-    .map((data) => ({ round: data.round.numero, ranking: groupOrder(data) }));
+    .map((data) => ({ round: data.round.numero, ranking: groupOrder(data), unplayed: unplayedGroups(data) }));
 }
 
 /** Vueltas cerradas de una temporada, para el ranking de temporada. */

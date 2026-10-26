@@ -3,7 +3,7 @@ import { checkGroups, generateRound } from '../domain/schedule';
 import { MatchCard } from './MatchCard';
 import type { Group, ScheduledMatch } from '../domain/types';
 import { closeRound, createRound, startSeason, type RoundData } from '../lib/db';
-import { categoryOf, errorMessage, GROUP_IDS, groupOrder, PROMOTIONS, proposeNextGroups, roundStandings } from '../lib/league';
+import { categoryOf, errorMessage, GROUP_IDS, groupOrder, PROMOTIONS, proposeNextGroups, roundStandings, unplayedGroups } from '../lib/league';
 import type { League } from '../lib/useLeague';
 
 /** Temporada, cierre de la vuelta en curso o creación de la siguiente. */
@@ -75,7 +75,9 @@ function CloseRound({ data, league }: { data: RoundData; league: League }) {
     }
     return block;
   }, [standings]);
+  const unplayed = unplayedGroups(data);
   const tiedGroups = data.groups.filter((g) => {
+    if (unplayed.has(g.id)) return false;
     const blocks = g.players.map((p) => tieBlock.get(p));
     return new Set(blocks).size < blocks.length;
   });
@@ -116,6 +118,13 @@ function CloseRound({ data, league }: { data: RoundData; league: League }) {
       <p>
         {data.matches.length - pending} de {data.matches.length} partidos jugados.
       </p>
+
+      {[...unplayed].map((id) => (
+        <p key={id} className="warn">
+          El grupo {id} · {categoryOf(id).name} no ha jugado ningún partido: se queda igual, no hay subidas ni bajadas con él y sus
+          jugadores no suman puntos de temporada ni medalla en esta vuelta.
+        </p>
+      ))}
 
       {tiedGroups.length > 0 && (
         <>

@@ -3,7 +3,7 @@ import { Avatar } from '../components/Brand';
 import { PlayerLink } from '../components/PlayerLink';
 import { SEASON_POINTS, seasonStandings } from '../domain/season';
 import type { RoundData } from '../lib/db';
-import { categoryOf, groupMatches, GROUP_IDS, PROMOTIONS, roundStandings, seasonRounds } from '../lib/league';
+import { boundaryOpen, categoryOf, groupMatches, GROUP_IDS, PROMOTIONS, roundStandings, seasonRounds, unplayedGroups } from '../lib/league';
 import type { League } from '../lib/useLeague';
 
 type Tab = 'vuelta' | 'temporada';
@@ -29,7 +29,7 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
   if (!data) return <EmptyRound />;
 
   const standings = roundStandings(data);
-  const last = data.groups.length - 1;
+  const unplayed = unplayedGroups(data);
   const anyTie = [...standings.values()].some((rows) => rows.some((row) => row.tiedWithPrevious && row.played > 0));
 
   return (
@@ -41,6 +41,11 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
         // Si la vuelta está cerrada, se muestra el orden final guardado (con los sorteos resueltos).
         const rowsById = new Map(standings.get(group.id)!.map((row) => [row.player, row]));
         const order = data.finalRanking?.get(group.id) ?? [...rowsById.keys()];
+        const upper = data.groups[g - 1];
+        const lower = data.groups[g + 1];
+        const canGoUp = upper !== undefined && boundaryOpen(unplayed, upper.id, group.id);
+        const canGoDown = lower !== undefined && boundaryOpen(unplayed, group.id, lower.id);
+        const notPlayed = unplayed.has(group.id) && data.round.estado === 'cerrada';
         return (
           <section className="groupCard" key={group.id}>
             <header className={`groupHead tone-${category.tone}`}>
@@ -48,9 +53,7 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
               <strong>
                 Grupo {group.id} · {category.name}
               </strong>
-              <small>
-                {played}/{matches.length} jugados
-              </small>
+              <small>{notPlayed ? 'No disputado' : `${played}/${matches.length} jugados`}</small>
             </header>
             <div className="tableWrap">
               <table className="standings">
@@ -68,8 +71,8 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
                 <tbody>
                   {order.map((player, i) => {
                     const row = rowsById.get(player)!;
-                    const up = g > 0 && i < PROMOTIONS;
-                    const down = g < last && i >= order.length - PROMOTIONS;
+                    const up = canGoUp && i < PROMOTIONS;
+                    const down = canGoDown && i >= order.length - PROMOTIONS;
                     return (
                       <tr key={player} className={up ? 'up' : down ? 'down' : undefined}>
                         <td className="pos">
@@ -108,6 +111,7 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
         Orden: victorias; si hay empate, diferencia de sets y después de juegos. Al cerrar la vuelta suben los {PROMOTIONS} primeros de
         cada grupo y bajan los {PROMOTIONS} últimos.
         {anyTie && !data.finalRanking && ' «=» empate total, se decide por sorteo.'}
+        {unplayed.size > 0 && ' Un grupo sin partidos jugados no tiene subidas ni bajadas con sus vecinos.'}
       </p>
     </>
   );
