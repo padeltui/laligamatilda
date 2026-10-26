@@ -170,6 +170,11 @@ export async function closeRound(roundId: string, ranking: ReadonlyMap<GroupId, 
   unwrap(await client().rpc('cerrar_vuelta', { p_vuelta: roundId, p_posiciones }));
 }
 
+/** Borra una vuelta con sus grupos y partidos (solo se ofrece si no tiene resultados). */
+export async function deleteRound(roundId: string): Promise<void> {
+  unwrap(await client().from('vueltas').delete().eq('id', roundId));
+}
+
 /** Cierra la temporada en curso y abre la siguiente. */
 export async function startSeason(): Promise<void> {
   unwrap(await client().rpc('nueva_temporada'));

@@ -59,3 +59,20 @@ describe('groupStandings', () => {
     expect(rows[0].points).toBe(1);
   });
 });
+
+describe('groupStandings con máximo de partidos', () => {
+  it('cuenta solo los mejores N de cada jugador', () => {
+    const players = ['Ana', 'Bea', 'Carla', 'Dani', 'Eva'];
+    const matches: PlayedMatch[] = [
+      { pair1: ['Ana', 'Bea'], pair2: ['Carla', 'Dani'], sets: [s(6, 0), s(6, 0)] },
+      { pair1: ['Ana', 'Carla'], pair2: ['Dani', 'Eva'], sets: [s(0, 6), s(0, 6)] },
+      { pair1: ['Ana', 'Dani'], pair2: ['Bea', 'Eva'], sets: [s(6, 4), s(6, 4)] },
+      { pair1: ['Ana', 'Eva'], pair2: ['Bea', 'Carla'], sets: [s(6, 3), s(3, 6), s(6, 3)] },
+    ];
+    const ana = groupStandings(players, matches, 3).find((r) => r.player === 'Ana')!;
+    // Ana juega 4: se descarta la derrota 0-6 0-6.
+    expect(ana).toMatchObject({ played: 4, discarded: 1, won: 3, lost: 0, setsWon: 6, setsLost: 1, gamesWon: 39, gamesLost: 20 });
+    const bea = groupStandings(players, matches, 3).find((r) => r.player === 'Bea')!;
+    expect(bea).toMatchObject({ played: 3, discarded: 0 });
+  });
+});

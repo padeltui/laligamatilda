@@ -17,9 +17,13 @@ describe('checkGroups', () => {
     expect(checkGroups(makeGroups(4, 4, 4))).toBeNull();
   });
 
-  it('rechaza grupos que no son de 4', () => {
-    expect(checkGroups(makeGroups(4, 5, 4))).toMatch(/debe tener 4/);
-    expect(checkGroups(makeGroups(4, 3, 4))).toMatch(/debe tener 4/);
+  it('acepta grupos de 5', () => {
+    expect(checkGroups(makeGroups(4, 4, 5))).toBeNull();
+  });
+
+  it('rechaza grupos que no son de 4 o 5', () => {
+    expect(checkGroups(makeGroups(4, 6, 4))).toMatch(/debe tener 4 o 5/);
+    expect(checkGroups(makeGroups(4, 3, 4))).toMatch(/debe tener 4 o 5/);
     expect(checkGroups([])).not.toBeNull();
   });
 
@@ -66,8 +70,21 @@ describe('generateRound', () => {
     }
   });
 
-  it('lanza error si un grupo no tiene 4 jugadores', () => {
-    expect(() => generateRound(makeGroups(4, 5, 4))).toThrow(/debe tener 4/);
+  it('lanza error si un grupo no tiene 4 o 5 jugadores', () => {
+    expect(() => generateRound(makeGroups(4, 6, 4))).toThrow(/debe tener 4 o 5/);
+  });
+
+  it.each(seeds)('grupo de 5 (semilla %i): 4 partidos en las semanas 1 a 4, sin repetir pareja', (seed) => {
+    const groups = makeGroups(4, 4, 5);
+    const matches = generateRound(groups, { rng: seededRng(seed) });
+    expect(validateSchedule(groups, matches)).toEqual([]);
+
+    const bronze = matches.filter((m) => m.kind === 'C');
+    expect(bronze.map((m) => m.week).sort()).toEqual([1, 2, 3, 4]);
+    expect(new Set(bronze.flatMap((m) => [pairKey(m.pair1), pairKey(m.pair2)])).size).toBe(8);
+    // Cuatro juegan 3 partidos y uno juega 4.
+    const counts = groups[2].players.map((p) => bronze.filter((m) => [...m.pair1, ...m.pair2].includes(p)).length);
+    expect(counts.sort()).toEqual([3, 3, 3, 3, 4]);
   });
 });
 

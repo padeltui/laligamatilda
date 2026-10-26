@@ -66,9 +66,15 @@ export function validateSchedule(
       issues.push({ type: 'same-week', message: `${nameOf(player)} juega ${indexes.length} partidos la semana ${week}.`, matches: indexes });
     }
   }
+  // Grupo de 4: 3 partidos cada uno. Grupo de 5: 3, salvo uno que juega 4.
+  const sizeOf = new Map(groups.flatMap((group) => group.players.map((player) => [player, group.players.length] as const)));
   for (const [player, indexes] of byPlayer) {
-    if (groupOf.has(player) && indexes.length !== MATCHES_PER_PLAYER) {
-      issues.push({ type: 'match-count', message: `${nameOf(player)} tiene ${indexes.length} partidos en vez de ${MATCHES_PER_PLAYER}.`, matches: indexes });
+    const size = sizeOf.get(player);
+    if (size === undefined) continue;
+    const max = size === 5 ? MATCHES_PER_PLAYER + 1 : MATCHES_PER_PLAYER;
+    if (indexes.length < MATCHES_PER_PLAYER || indexes.length > max) {
+      const expected = max === MATCHES_PER_PLAYER ? `${MATCHES_PER_PLAYER}` : `${MATCHES_PER_PLAYER} o ${max}`;
+      issues.push({ type: 'match-count', message: `${nameOf(player)} tiene ${indexes.length} partidos en vez de ${expected}.`, matches: indexes });
     }
   }
   return issues;

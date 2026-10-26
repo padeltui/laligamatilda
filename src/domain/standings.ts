@@ -9,7 +9,10 @@ export interface PlayedMatch {
 
 export interface StandingRow {
   player: PlayerId;
+  /** Partidos jugados (todos, también los descartados). */
   played: number;
+  /** Partidos que no cuentan por superar el máximo (se descartan los peores). */
+  discarded: number;
   won: number;
   lost: number;
   /** Igual a victorias: cada partido ganado vale 1 punto. */
@@ -25,18 +28,27 @@ export interface StandingRow {
   tiedWithPrevious: boolean;
 }
 
+interface Contribution {
+  won: boolean;
+  points: number;
+  setsFor: number;
+  setsAgainst: number;
+  gamesFor: number;
+  gamesAgainst: number;
+}
+
+/** De mejor a peor: victoria, diferencia de sets, diferencia de juegos. */
+function byBest(a: Contribution, b: Contribution): number {
+  return Number(b.won) - Number(a.won) || b.setsFor - b.setsAgainst - (a.setsFor - a.setsAgainst) || b.gamesFor - b.gamesAgainst - (a.gamesFor - a.gamesAgainst);
+}
+
 /**
- * Clasificación individual de un grupo. Cuenta todos los partidos en los que
- * participa cada jugador; los jugadores de otros grupos (p. ej. suplentes) se ignoran.
+ * Clasificación individual de un grupo. Para cada jugador cuentan como mucho sus
+ * `maxCounted` mejores partidos; los jugadores de otros grupos (p. ej. suplentes) se ignoran.
  * Orden: victorias, diferencia de sets, diferencia de juegos, juegos ganados.
  */
-export function groupStandings(players: readonly PlayerId[], matches: readonly PlayedMatch[]): StandingRow[] {
-  const rows = new Map<PlayerId, StandingRow>(
-    players.map((player) => [
-      player,
-      { player, played: 0, won: 0, lost: 0, points: 0, setsWon: 0, setsLost: 0, setDiff: 0, gamesWon: 0, gamesLost: 0, gameDiff: 0, position: 0, tiedWithPrevious: false },
-    ]),
-  );
+export function groupStandings(players: readonly PlayerId[], matches: readonly PlayedMatch[], maxCounted = Infinity): StandingRow[] {
+  const contributions = new Map<PlayerId, Contribution[]>(players.map((player) => [player, []]));
 
   for (const match of matches) {
     const outcome = scoreMatch(match.sets);
@@ -44,25 +56,38 @@ export function groupStandings(players: readonly PlayerId[], matches: readonly P
       { pair: match.pair1, won: outcome.winner === 1, points: outcome.pointsPair1, setsFor: outcome.setsPair1, setsAgainst: outcome.setsPair2, gamesFor: outcome.gamesPair1, gamesAgainst: outcome.gamesPair2 },
       { pair: match.pair2, won: outcome.winner === 2, points: outcome.pointsPair2, setsFor: outcome.setsPair2, setsAgainst: outcome.setsPair1, gamesFor: outcome.gamesPair2, gamesAgainst: outcome.gamesPair1 },
     ];
-    for (const side of sides) {
-      for (const player of side.pair) {
-        const row = rows.get(player);
-        if (!row) continue;
-        row.played += 1;
-        row.won += side.won ? 1 : 0;
-        row.lost += side.won ? 0 : 1;
-        row.points += side.points;
-        row.setsWon += side.setsFor;
-        row.setsLost += side.setsAgainst;
-        row.setDiff = row.setsWon - row.setsLost;
-        row.gamesWon += side.gamesFor;
-        row.gamesLost += side.gamesAgainst;
-        row.gameDiff = row.gamesWon - row.gamesLost;
-      }
+    for (const { pair, ...contribution } of sides) {
+      for (const player of pair) contributions.get(player)?.push(contribution);
     }
   }
 
-  const sorted = [...rows.values()].sort(
+  const rows = [...contributions].map(([player, all]): StandingRow => {
+    const counted = [...all].sort(byBest).slice(0, maxCounted);
+    const sum = (f: (c: Contribution) => number) => counted.reduce((s, c) => s + f(c), 0);
+    const won = counted.filter((c) => c.won).length;
+    const setsWon = sum((c) => c.setsFor);
+    const setsLost = sum((c) => c.setsAgainst);
+    const gamesWon = sum((c) => c.gamesFor);
+    const gamesLost = sum((c) => c.gamesAgainst);
+    return {
+      player,
+      played: all.length,
+      discarded: all.length - counted.length,
+      won,
+      lost: counted.length - won,
+      points: sum((c) => c.points),
+      setsWon,
+      setsLost,
+      setDiff: setsWon - setsLost,
+      gamesWon,
+      gamesLost,
+      gameDiff: gamesWon - gamesLost,
+      position: 0,
+      tiedWithPrevious: false,
+    };
+  });
+
+  const sorted = rows.sort(
     (a, b) =>
       b.points - a.points ||
       b.setDiff - a.setDiff ||

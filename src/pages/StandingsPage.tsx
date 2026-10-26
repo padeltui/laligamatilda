@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Avatar } from '../components/Brand';
 import { PlayerLink } from '../components/PlayerLink';
+import { MATCHES_PER_PLAYER } from '../domain/schedule';
 import { SEASON_POINTS, seasonStandings } from '../domain/season';
 import type { RoundData } from '../lib/db';
 import { boundaryOpen, categoryOf, groupMatches, GROUP_IDS, PROMOTIONS, roundStandings, seasonRounds, unplayedGroups } from '../lib/league';
@@ -89,7 +90,14 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
                             </span>
                           </PlayerLink>
                         </td>
-                        <td>{row.played}</td>
+                        <td>
+                          {row.played}
+                          {row.discarded > 0 && (
+                            <span className="discarded" title={`Cuentan sus ${MATCHES_PER_PLAYER} mejores partidos`}>
+                              *
+                            </span>
+                          )}
+                        </td>
                         <td className="wins">{row.won}</td>
                         <td>{row.lost}</td>
                         <td title={`Diferencia ${signed(row.setDiff)}`}>
@@ -108,7 +116,8 @@ function RoundStandings({ data, nameOf }: { data: RoundData | null; nameOf: (id:
         );
       })}
       <p className="legend">
-        Orden: victorias; si hay empate, diferencia de sets y después de juegos. Al cerrar la vuelta suben los {PROMOTIONS} primeros de
+        Cuentan los {MATCHES_PER_PLAYER} mejores partidos de cada jugador (* = tiene alguno descartado). Orden: victorias; si hay
+        empate, diferencia de sets y después de juegos. Al cerrar la vuelta suben los {PROMOTIONS} primeros de
         cada grupo y bajan los {PROMOTIONS} últimos.
         {anyTie && !data.finalRanking && ' «=» empate total, se decide por sorteo.'}
         {unplayed.size > 0 && ' Un grupo sin partidos jugados no tiene subidas ni bajadas con sus vecinos.'}

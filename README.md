@@ -5,10 +5,16 @@ calendario generado automáticamente con parejas que rotan y clasificación indi
 
 ## Reglas
 
-- Grupos de 4 jugadores, ordenados por nivel (A oro > B plata > C bronce).
+- Grupos de 4 (o 5) jugadores, ordenados por nivel (A oro > B plata > C bronce).
 - En cada grupo se juegan los **3 partidos** posibles sin repetir pareja (cada jugador juega una vez
   con cada compañero), uno por semana: **semanas 1, 2 y 3**.
 - La **semana 4 es de recuperación**: si un partido se aplaza, se mueve ahí desde «Editar».
+- Un grupo puede tener **5 jugadores** (p. ej. Bronce): juega 4 partidos, uno por semana de la 1 a la 4, y en cada uno
+  descansa un jugador distinto (cuatro juegan 3 partidos y uno juega 4). Puede recuperar en la semana 5.
+- En la clasificación de la vuelta **cuentan los 3 mejores partidos** de cada jugador; si juega menos, los que tenga.
+  El 5º de un grupo de 5 suma 0 puntos de temporada. El Índice Matilda y las estadísticas cuentan todos los partidos.
+- Si un grupo no juega ningún partido en la vuelta, se queda igual: no hay subidas ni bajadas con él y sus jugadores
+  no suman puntos de temporada ni medalla.
 - Resultados por sets (6-4, 7-5, 7-6…); el tercer set se juega completo.
 - Cada victoria vale **1 punto**, da igual ganar 2-0 o 2-1 (victorias y derrotas, como en la NFL).
 - Clasificación: victorias → diferencia de sets → diferencia de juegos → juegos ganados → sorteo.

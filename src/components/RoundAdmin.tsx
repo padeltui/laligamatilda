@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { checkGroups, generateRound } from '../domain/schedule';
 import { MatchCard } from './MatchCard';
 import type { Group, ScheduledMatch } from '../domain/types';
-import { closeRound, createRound, startSeason, type RoundData } from '../lib/db';
+import { closeRound, createRound, deleteRound, startSeason, type RoundData } from '../lib/db';
 import { categoryOf, errorMessage, GROUP_IDS, groupOrder, PROMOTIONS, proposeNextGroups, roundStandings, unplayedGroups } from '../lib/league';
 import type { League } from '../lib/useLeague';
 
@@ -112,6 +112,18 @@ function CloseRound({ data, league }: { data: RoundData; league: League }) {
     }
   };
 
+  const anyPlayed = data.matches.some((m) => m.estado === 'jugado' || m.sets.length > 0);
+  const discard = async () => {
+    if (!window.confirm(`¿Descartar la vuelta ${data.round.numero}? Se borran sus grupos y su calendario para volver a generarla. No tiene resultados.`)) return;
+    setError(null);
+    try {
+      await deleteRound(data.round.id);
+      await league.refresh();
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
+
   return (
     <section className="card">
       <h2>Vuelta {data.round.numero} en curso</h2>
@@ -166,9 +178,22 @@ function CloseRound({ data, league }: { data: RoundData; league: League }) {
           ))}
       </ul>
       {error && <p className="error">{error}</p>}
-      <button className="primary" onClick={close}>
-        Cerrar vuelta
-      </button>
+      <div className="buttons">
+        <button className="primary" onClick={close}>
+          Cerrar vuelta
+        </button>
+        {!anyPlayed && (
+          <button className="danger" onClick={discard}>
+            Descartar vuelta
+          </button>
+        )}
+      </div>
+      {!anyPlayed && (
+        <p className="muted">
+          «Descartar vuelta» borra el calendario de esta vuelta (aún sin resultados) para volver a generarla, p. ej. si entra un jugador
+          nuevo.
+        </p>
+      )}
     </section>
   );
 }
@@ -234,7 +259,7 @@ function NewRound({ league, previous }: { league: League; previous: RoundData | 
       <p className="muted">
         {previous
           ? `Grupos propuestos según la vuelta ${previous.round.numero} (suben ${PROMOTIONS} y bajan ${PROMOTIONS}). Puedes ajustarlos.`
-          : 'Reparte los jugadores en los grupos de 4. Cada grupo juega 3 partidos (semanas 1 a 3); la semana 4 es de recuperación.'}
+          : 'Reparte los jugadores en los grupos (4 o 5 jugadores). Grupo de 4: 3 partidos en las semanas 1 a 3, la 4 es de recuperación. Grupo de 5: 4 partidos en las semanas 1 a 4 y cuentan los 3 mejores de cada uno.'}
       </p>
       <div className="groupCounts">
         {groups.map((g) => (

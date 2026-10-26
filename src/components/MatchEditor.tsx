@@ -29,7 +29,9 @@ export function MatchEditor({ match, data, players, nameOf, onDone, onCancel }: 
   const issues = validateSchedule(data.groups, schedule, nameOf).filter((issue) => issue.matches.includes(index));
   const duplicated = new Set(slots).size !== slots.length;
 
-  const maxWeek = Math.max(RECOVERY_WEEK, ...data.matches.map((m) => m.week));
+  // Un grupo de 5 ya usa la semana 4, así que puede recuperar en la 5.
+  const groupSize = data.groups.find((g) => g.id === match.kind)?.players.length ?? 4;
+  const maxWeek = Math.max(RECOVERY_WEEK + (groupSize === 5 ? 1 : 0), ...data.matches.map((m) => m.week));
   const roundPlayers = new Set(data.groups.flatMap((g) => g.players));
   const substitutes = players.filter((p) => p.activo && !roundPlayers.has(p.id));
   const busyThatWeek = new Set(schedule.filter((m) => m.week === week && m.id !== match.id).flatMap((m) => [...m.pair1, ...m.pair2]));

@@ -1,4 +1,5 @@
 import { nextGroups } from '../domain/promotion';
+import { MATCHES_PER_PLAYER } from '../domain/schedule';
 import { validateSets } from '../domain/scoring';
 import { groupStandings, type PlayedMatch, type StandingRow } from '../domain/standings';
 import type { SeasonRound } from '../domain/season';
@@ -17,7 +18,7 @@ export function playedMatches(matches: readonly RoundMatch[]): PlayedMatch[] {
 
 export function roundStandings(data: Pick<RoundData, 'groups' | 'matches'>): Map<GroupId, StandingRow[]> {
   const played = playedMatches(data.matches);
-  return new Map(data.groups.map((group) => [group.id, groupStandings(group.players, played)]));
+  return new Map(data.groups.map((group) => [group.id, groupStandings(group.players, played, MATCHES_PER_PLAYER)]));
 }
 
 type RankingSource = Pick<RoundData, 'groups' | 'matches'> & { finalRanking?: RoundData['finalRanking'] };

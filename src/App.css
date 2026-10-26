@@ -277,6 +277,7 @@ button.link { border: 0; background: none; padding: 0; color: var(--court); font
 .highlight { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0; }
 .highlight small { color: var(--muted); font-weight: 600; }
 
+.discarded { color: var(--muted); margin-left: 1px; }
 .medalTable td.zero { color: var(--muted); opacity: .6; }
 .goldTitles { color: var(--gold); font-weight: 700; }
 .medalSummary { text-transform: none; letter-spacing: 0; font-size: .85rem; color: var(--text); }
