@@ -3,9 +3,9 @@ import { seasonPoints, seasonStandings } from './season';
 
 describe('seasonPoints', () => {
   it('sigue la tabla de la liga', () => {
-    expect([1, 2, 3, 4].map((p) => seasonPoints('A', p))).toEqual([12, 10, 8, 6]);
-    expect([1, 2, 3, 4].map((p) => seasonPoints('B', p))).toEqual([9, 7, 5, 3]);
-    expect([1, 2, 3, 4].map((p) => seasonPoints('C', p))).toEqual([6, 4, 2, 0]);
+    expect([1, 2, 3, 4, 5].map((p) => seasonPoints('A', p))).toEqual([12, 10, 8, 6, 4]);
+    expect([1, 2, 3, 4, 5].map((p) => seasonPoints('B', p))).toEqual([9, 7, 5, 3, 1]);
+    expect([1, 2, 3, 4, 5].map((p) => seasonPoints('C', p))).toEqual([6, 4, 2, 0, 0]);
   });
 });
 

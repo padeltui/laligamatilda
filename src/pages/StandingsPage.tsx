@@ -238,6 +238,7 @@ function SeasonStandings({ league }: { league: League }) {
               <th>2º</th>
               <th>3º</th>
               <th>4º</th>
+              <th title="Solo en grupos de 5">5º</th>
             </tr>
           </thead>
           <tbody>

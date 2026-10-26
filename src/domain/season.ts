@@ -1,10 +1,10 @@
 import type { GroupId, PlayerId } from './types';
 
-/** Puntos de temporada según el grupo y la posición final en la vuelta. */
+/** Puntos de temporada según el grupo y la posición final en la vuelta (5º: grupos de 5). */
 export const SEASON_POINTS: Record<GroupId, readonly number[]> = {
-  A: [12, 10, 8, 6],
-  B: [9, 7, 5, 3],
-  C: [6, 4, 2, 0],
+  A: [12, 10, 8, 6, 4],
+  B: [9, 7, 5, 3, 1],
+  C: [6, 4, 2, 0, 0],
 };
 
 export function seasonPoints(group: GroupId, position: number): number {

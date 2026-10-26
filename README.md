@@ -12,7 +12,7 @@ calendario generado automáticamente con parejas que rotan y clasificación indi
 - Un grupo puede tener **5 jugadores** (p. ej. Bronce): juega 4 partidos, uno por semana de la 1 a la 4, y en cada uno
   descansa un jugador distinto (cuatro juegan 3 partidos y uno juega 4). Puede recuperar en la semana 5.
 - En la clasificación de la vuelta **cuentan los 3 mejores partidos** de cada jugador; si juega menos, los que tenga.
-  El 5º de un grupo de 5 suma 0 puntos de temporada. El Índice Matilda y las estadísticas cuentan todos los partidos.
+  El Índice Matilda y las estadísticas cuentan todos los partidos.
 - Si un grupo no juega ningún partido en la vuelta, se queda igual: no hay subidas ni bajadas con él y sus jugadores
   no suman puntos de temporada ni medalla.
 - Resultados por sets (6-4, 7-5, 7-6…); el tercer set se juega completo.
@@ -25,11 +25,11 @@ calendario generado automáticamente con parejas que rotan y clasificación indi
 
 - Cada vuelta cerrada da **puntos de temporada** según el grupo y la posición final:
 
-  | Grupo | 1º | 2º | 3º | 4º |
-  |---|---|---|---|---|
-  | Oro | 12 | 10 | 8 | 6 |
-  | Plata | 9 | 7 | 5 | 3 |
-  | Bronce | 6 | 4 | 2 | 0 |
+  | Grupo | 1º | 2º | 3º | 4º | 5º (grupos de 5) |
+  |---|---|---|---|---|---|
+  | Oro | 12 | 10 | 8 | 6 | 4 |
+  | Plata | 9 | 7 | 5 | 3 | 1 |
+  | Bronce | 6 | 4 | 2 | 0 | 0 |
 
 - A igualdad de puntos gana quien sumó más en la última vuelta.
 - Desde Admin se empieza una temporada nueva (p. ej. cada 4 o 5 vueltas); las anteriores se conservan.
