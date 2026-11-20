@@ -38,4 +38,6 @@ export interface HistoryMatch {
   pair1: Pair;
   pair2: Pair;
   sets: readonly SetScore[];
+  /** Texto para mostrar de dónde es el partido, p. ej. «V2 · S1» o «Semana 3». */
+  label?: string;
 }

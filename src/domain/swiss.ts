@@ -1,7 +1,8 @@
 import { ELO_START } from './elo';
+import { chronological } from './history';
 import { shuffle, type Rng } from './rng';
 import { pairKey } from './schedule';
-import type { Pair, PlayerId } from './types';
+import type { HistoryMatch, Pair, PlayerId } from './types';
 
 /** Franjas fijas en las que se puede jugar cada semana. */
 export const SLOTS = [
@@ -144,4 +145,19 @@ function scoreOf(matches: readonly SwissMatch[], input: SwissInput): number {
 
 function slotIndex(slot: string): number {
   return SLOTS.findIndex((s) => s.id === slot);
+}
+
+/** Cuántas veces ha sido pareja cada dupla en los últimos `limit` partidos con resultado. */
+export function recentPartnerCounts(matches: readonly HistoryMatch[], limit = 24): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const match of chronological(matches).slice(-limit)) {
+    for (const pair of [match.pair1, match.pair2]) counts.set(pairKey(pair), (counts.get(pairKey(pair)) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** Apuntados a una semana que se quedaron sin partido. */
+export function leftOut(available: Iterable<PlayerId>, matches: readonly { pair1: Pair; pair2: Pair }[]): Set<PlayerId> {
+  const playing = new Set(matches.flatMap((m) => [...m.pair1, ...m.pair2]));
+  return new Set([...available].filter((p) => !playing.has(p)));
 }

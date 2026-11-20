@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchHistory, fetchPlayers, fetchRounds, fetchSeasons, type Player, type Round, type RoundData, type Season } from './db';
+import { fetchHistory, fetchPlayers, fetchRounds, fetchSeasons, fetchWeeks, type Player, type Round, type RoundData, type Season, type WeekData } from './db';
 import { errorMessage } from './league';
 import { supabase } from './supabase';
 
@@ -13,6 +13,8 @@ export interface League {
   rounds: Round[];
   /** Datos de todas las vueltas, en el mismo orden que `rounds`. */
   history: RoundData[];
+  /** Semanas de la liga suiza, de la más reciente a la más antigua. */
+  weeks: WeekData[];
   selectedRoundId: string | null;
   selectRound: (id: string) => void;
   roundData: RoundData | null;
@@ -28,6 +30,7 @@ export function useLeague(): League {
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [rounds, setRounds] = useState<Round[]>([]);
   const [history, setHistory] = useState<RoundData[]>([]);
+  const [weeks, setWeeks] = useState<WeekData[]>([]);
   const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null);
 
   const refresh = useCallback(async (roundId?: string) => {
@@ -35,11 +38,12 @@ export function useLeague(): League {
     try {
       setError(null);
       const [nextPlayers, nextSeasons, nextRounds] = await Promise.all([fetchPlayers(), fetchSeasons(), fetchRounds()]);
-      const nextHistory = await fetchHistory(nextRounds);
+      const [nextHistory, nextWeeks] = await Promise.all([fetchHistory(nextRounds), fetchWeeks()]);
       setPlayers(nextPlayers);
       setSeasons(nextSeasons);
       setRounds(nextRounds);
       setHistory(nextHistory);
+      setWeeks(nextWeeks);
       setSelectedRoundId((current) => {
         const wanted = roundId ?? current;
         if (wanted && nextRounds.some((round) => round.id === wanted)) return wanted;
@@ -70,6 +74,7 @@ export function useLeague(): League {
     seasons,
     rounds,
     history,
+    weeks,
     selectedRoundId,
     selectRound: setSelectedRoundId,
     roundData,

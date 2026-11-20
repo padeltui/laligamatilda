@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react';
 import { scoreMatch } from '../domain/scoring';
 import type { Pair } from '../domain/types';
 import type { RoundMatch } from '../lib/db';
+import { slotLabel } from '../domain/swiss';
 import { kindLabel } from '../lib/league';
 import { Avatar } from './Brand';
 
@@ -23,8 +24,8 @@ export function MatchCard({ match, nameOf, note, children }: Props) {
   return (
     <article className="card matchCard">
       <header className="matchHead">
-        <span className={`chip chip-${match.kind}`}>{match.kind.split('').join('·')}</span>
-        <span>{kindLabel(match.kind)}</span>
+        <span className={`chip chip-${match.kind}`}>{match.slot ? '🎾' : match.kind.split('').join('·')}</span>
+        <span>{match.slot ? slotLabel(match.slot) : kindLabel(match.kind)}</span>
         {note && <span>· {note}</span>}
         <span className={`matchStatus status-${match.estado}`}>{STATUS_LABEL[match.estado]}</span>
       </header>

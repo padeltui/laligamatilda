@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PlayersAdmin } from '../components/PlayersAdmin';
 import { RoundAdmin } from '../components/RoundAdmin';
+import { WeekAdmin } from '../components/WeekAdmin';
 import { errorMessage } from '../lib/league';
 import type { Auth } from '../lib/useAuth';
 import type { League } from '../lib/useLeague';
@@ -34,8 +35,12 @@ export function AdminPage({ auth, league }: { auth: Auth; league: League }) {
 
   return (
     <>
-      <RoundAdmin league={league} />
+      <WeekAdmin league={league} />
       <PlayersAdmin players={league.players} onChanged={() => league.refresh()} />
+      <details className="card legacy">
+        <summary>Vueltas (sistema anterior)</summary>
+        <RoundAdmin league={league} />
+      </details>
       <p className="muted signedIn">
         Admin: {email} ·{' '}
         <button className="link" onClick={auth.signOut}>

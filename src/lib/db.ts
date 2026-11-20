@@ -28,6 +28,8 @@ export interface Round {
 export interface RoundMatch extends ScheduledMatch {
   id: string;
   estado: MatchState;
+  /** Franja de la liga suiza (sab_manana…); null en los partidos de vuelta. */
+  slot: string | null;
   sets: SetScore[];
   /** Última modificación (al guardar un resultado se actualiza). */
   updatedAt: string;
@@ -50,7 +52,9 @@ interface GroupRow {
 
 interface MatchRow {
   id: string;
-  vuelta_id: string;
+  vuelta_id: string | null;
+  semana_id: string | null;
+  franja: string | null;
   semana: number;
   tipo: string;
   pareja1_j1: string;
@@ -96,6 +100,25 @@ export async function fetchRounds(): Promise<Round[]> {
   );
 }
 
+const MATCH_COLUMNS =
+  'id, vuelta_id, semana_id, franja, semana, tipo, pareja1_j1, pareja1_j2, pareja2_j1, pareja2_j2, estado, actualizado_en, sets(numero, juegos_pareja1, juegos_pareja2)';
+
+function toMatch(row: MatchRow): RoundMatch {
+  return {
+    id: row.id,
+    week: row.semana,
+    kind: row.tipo,
+    pair1: [row.pareja1_j1, row.pareja1_j2] as const,
+    pair2: [row.pareja2_j1, row.pareja2_j2] as const,
+    estado: row.estado,
+    slot: row.franja,
+    updatedAt: row.actualizado_en,
+    sets: [...row.sets]
+      .sort((a, b) => a.numero - b.numero)
+      .map((set) => ({ pair1: set.juegos_pareja1, pair2: set.juegos_pareja2 })),
+  };
+}
+
 /** Grupos, partidos y resultados de todas las vueltas, en el mismo orden que `rounds`. */
 export async function fetchHistory(rounds: readonly Round[]): Promise<RoundData[]> {
   if (rounds.length === 0) return [];
@@ -104,7 +127,7 @@ export async function fetchHistory(rounds: readonly Round[]): Promise<RoundData[
     client()
       .from('partidos')
       .select(
-        'id, vuelta_id, semana, tipo, pareja1_j1, pareja1_j2, pareja2_j1, pareja2_j2, estado, actualizado_en, sets(numero, juegos_pareja1, juegos_pareja2)',
+        MATCH_COLUMNS,
       )
       .order('semana'),
   ]);
@@ -136,19 +159,7 @@ function toRoundData(round: Round, groupRows: GroupRow[], matchRows: MatchRow[])
         ]),
       )
     : null;
-  const matches = matchRows.map((row) => ({
-    id: row.id,
-    week: row.semana,
-    kind: row.tipo,
-    pair1: [row.pareja1_j1, row.pareja1_j2] as const,
-    pair2: [row.pareja2_j1, row.pareja2_j2] as const,
-    estado: row.estado,
-    updatedAt: row.actualizado_en,
-    sets: [...row.sets]
-      .sort((a, b) => a.numero - b.numero)
-      .map((set) => ({ pair1: set.juegos_pareja1, pair2: set.juegos_pareja2 })),
-  }));
-  return { round, groups, matches, finalRanking };
+  return { round, groups, matches: matchRows.map(toMatch), finalRanking };
 }
 
 export async function createRound(numero: number, groups: readonly Group[], matches: readonly ScheduledMatch[]): Promise<string> {
@@ -192,6 +203,91 @@ export async function updateMatch(match: Pick<RoundMatch, 'id' | 'week' | 'pair1
       .from('partidos')
       .update({
         semana: match.week,
+        pareja1_j1: match.pair1[0],
+        pareja1_j2: match.pair1[1],
+        pareja2_j1: match.pair2[0],
+        pareja2_j2: match.pair2[1],
+        estado: match.estado,
+      })
+      .eq('id', match.id),
+  );
+}
+
+// ---------- Liga suiza ----------
+
+export interface Week {
+  id: string;
+  numero: number;
+  /** Lunes de la semana (AAAA-MM-DD). */
+  fecha_inicio: string;
+  estado: 'abierta' | 'publicada';
+}
+
+export interface WeekData {
+  week: Week;
+  /** Franjas de cada apuntado. */
+  availability: Map<PlayerId, string[]>;
+  matches: RoundMatch[];
+}
+
+/** Todas las semanas con su disponibilidad y sus partidos, de la más reciente a la más antigua. */
+export async function fetchWeeks(): Promise<WeekData[]> {
+  const [weekResult, availabilityResult, matchResult] = await Promise.all([
+    client().from('semanas').select('id, numero, fecha_inicio, estado').order('numero', { ascending: false }),
+    client().from('disponibilidad').select('semana_id, jugador_id, franja'),
+    client().from('partidos').select(MATCH_COLUMNS).not('semana_id', 'is', null),
+  ]);
+  const weeks = unwrap<Week[]>(weekResult);
+  const availability = unwrap<{ semana_id: string; jugador_id: string; franja: string }[]>(availabilityResult);
+  const matches = unwrap<MatchRow[]>(matchResult);
+  return weeks.map((week) => {
+    const byPlayer = new Map<PlayerId, string[]>();
+    for (const row of availability.filter((r) => r.semana_id === week.id)) {
+      byPlayer.set(row.jugador_id, [...(byPlayer.get(row.jugador_id) ?? []), row.franja]);
+    }
+    return { week, availability: byPlayer, matches: matches.filter((m) => m.semana_id === week.id).map(toMatch) };
+  });
+}
+
+export async function openWeek(fechaInicio: string): Promise<void> {
+  unwrap(await client().rpc('abrir_semana', { p_fecha_inicio: fechaInicio }));
+}
+
+/** Guarda las franjas de un jugador en la semana abierta; con una lista vacía lo desapunta. */
+export async function signUp(weekId: string, playerId: string, slots: readonly string[], pin: string): Promise<void> {
+  unwrap(await client().rpc('apuntarse', { p_semana: weekId, p_jugador: playerId, p_franjas: slots, p_pin: pin }));
+}
+
+export async function publishWeek(weekId: string, matches: readonly { slot: string; pair1: readonly string[]; pair2: readonly string[] }[]): Promise<void> {
+  const p_partidos = matches.map((m) => ({
+    franja: m.slot,
+    pareja1_j1: m.pair1[0],
+    pareja1_j2: m.pair1[1],
+    pareja2_j1: m.pair2[0],
+    pareja2_j2: m.pair2[1],
+  }));
+  unwrap(await client().rpc('publicar_semana', { p_semana: weekId, p_partidos }));
+}
+
+export async function unpublishWeek(weekId: string): Promise<void> {
+  unwrap(await client().rpc('despublicar_semana', { p_semana: weekId }));
+}
+
+export async function hasPin(): Promise<boolean> {
+  return unwrap<boolean>(await client().rpc('hay_pin'));
+}
+
+export async function changePin(pin: string): Promise<void> {
+  unwrap(await client().rpc('cambiar_pin', { p_pin: pin }));
+}
+
+/** Cambia franja, jugadores o estado de un partido de la liga suiza. */
+export async function updateWeekMatch(match: Pick<RoundMatch, 'id' | 'pair1' | 'pair2' | 'estado'> & { slot: string }): Promise<void> {
+  unwrap(
+    await client()
+      .from('partidos')
+      .update({
+        franja: match.slot,
         pareja1_j1: match.pair1[0],
         pareja1_j2: match.pair1[1],
         pareja2_j1: match.pair2[0],

@@ -289,6 +289,27 @@ button.link { border: 0; background: none; padding: 0; color: var(--court); font
 .tieList li span { margin-right: 8px; }
 .tieList button { padding: 2px 10px; }
 
+/* ---------- Liga suiza ---------- */
+.field { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; font-weight: 600; margin: 10px 0; }
+.field select, .field input { font-weight: 400; }
+.signUp h2 { margin-bottom: 4px; }
+.slotGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+.slotToggle { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px; border-radius: 12px; background: var(--soft); border: 2px solid var(--border); text-align: left; }
+.slotToggle small { color: var(--muted); font-size: .75rem; }
+.slotToggle.selected { background: var(--ball); border-color: var(--ball-dark); color: var(--court-deep); }
+.slotToggle.selected small { color: var(--court-deep); }
+.slotList { padding: 10px 12px; }
+.slotListHead { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.slotListHead small { color: var(--muted); font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.personChip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border-radius: 999px; background: var(--soft); font-size: .85rem; }
+.personChip .avatar { width: 22px; height: 22px; font-size: .55rem; }
+.chip-S { background: var(--ball); color: var(--court-deep); }
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.legacy summary { cursor: pointer; font-weight: 600; }
+.legacy[open] summary { margin-bottom: 12px; }
+.legacy .card { border-style: dashed; }
+
 /* ---------- Navegación ---------- */
 .bottomNav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;

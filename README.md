@@ -3,7 +3,19 @@
 Web para gestionar una liga de pádel entre amigos: grupos con ascensos y descensos,
 calendario generado automáticamente con parejas que rotan y clasificación individual.
 
-## Reglas
+## Liga suiza (sistema actual)
+
+- **De lunes a jueves** cada jugador se apunta en Inicio a las franjas en las que puede jugar
+  (sábado mañana, sábado tarde, domingo mañana, domingo tarde) con el **PIN de la liga**.
+- **El jueves**, el admin pulsa «Organizar partidos» y publica la propuesta. La web:
+  - hace jugar al máximo de gente (un partido por persona);
+  - da prioridad a quien se quedó sin jugar la semana anterior;
+  - junta jugadores de Índice Matilda parecido y equilibra las parejas sin repetir compañero reciente.
+- La clasificación principal es el **Índice Matilda**, que continúa desde las vueltas.
+- El PIN se guarda cifrado en la base de datos y lo cambia el admin desde Admin.
+- Requiere ejecutar `supabase/migrations/004_liga_suiza.sql` (solo añade tablas y funciones).
+
+## Reglas de las vueltas (sistema anterior)
 
 - Grupos de 4 (o 5) jugadores, ordenados por nivel (A oro > B plata > C bronce).
 - En cada grupo se juegan los **3 partidos** posibles sin repetir pareja (cada jugador juega una vez
@@ -67,7 +79,7 @@ supabase/       esquema de base de datos y permisos
 ## Puesta en marcha de Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. En **SQL Editor**, ejecuta por orden `001_init.sql`, `002_funciones.sql` y `003_temporadas.sql` (carpeta `supabase/migrations`).
+2. En **SQL Editor**, ejecuta por orden los archivos de `supabase/migrations` (`001` a `004`).
 3. Copia `.env.example` a `.env.local` y rellena la URL y la clave *publishable*
    (Project Settings → API). **No uses nunca la clave `service_role` en la web.**
 4. En **Authentication → URL Configuration**, pon como *Site URL* `https://<usuario>.github.io/laligamatilda/`

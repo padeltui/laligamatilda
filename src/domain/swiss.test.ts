@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { seededRng } from './rng';
 import { pairKey } from './schedule';
-import { balancedPairs, organizeWeek, type SlotId } from './swiss';
+import { balancedPairs, leftOut, organizeWeek, recentPartnerCounts, type SlotId } from './swiss';
 
 const everyone = (players: string[], slots: SlotId[]) => new Map(players.map((p) => [p, slots]));
 const ratingsOf = (entries: [string, number][]) => new Map(entries);
@@ -85,5 +85,22 @@ describe('organizeWeek', () => {
     const { matches, unassigned } = organizeWeek({ availability, ratings }, { rng: seededRng(11) });
     expect(matches).toHaveLength(3);
     expect(unassigned).toHaveLength(1);
+  });
+});
+
+describe('recentPartnerCounts y leftOut', () => {
+  const m = (id: string, round: number, pair1: [string, string], pair2: [string, string]) => ({
+    id, round, week: 1, playedAt: '2026-01-01T00:00:00Z', pair1, pair2, sets: [{ pair1: 6, pair2: 1 }, { pair1: 6, pair2: 1 }],
+  });
+
+  it('cuenta las parejas de los últimos partidos', () => {
+    const counts = recentPartnerCounts([m('1', 1, ['a', 'b'], ['c', 'd']), m('2', 2, ['b', 'a'], ['c', 'e'])]);
+    expect(counts.get(pairKey(['a', 'b']))).toBe(2);
+    expect(counts.get(pairKey(['c', 'd']))).toBe(1);
+    expect(recentPartnerCounts([m('1', 1, ['a', 'b'], ['c', 'd']), m('2', 2, ['a', 'c'], ['b', 'd'])], 1).has(pairKey(['a', 'b']))).toBe(false);
+  });
+
+  it('detecta quién se quedó sin jugar', () => {
+    expect([...leftOut(['a', 'b', 'c', 'd', 'e'], [{ pair1: ['a', 'b'], pair2: ['c', 'd'] }])]).toEqual(['e']);
   });
 });

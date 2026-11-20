@@ -300,7 +300,7 @@ function NewRound({ league, previous }: { league: League; previous: RoundData | 
               {preview
                 .filter((m) => m.week === week)
                 .map((m, i) => (
-                  <MatchCard key={i} match={{ ...m, id: String(i), estado: 'pendiente', sets: [], updatedAt: '' }} nameOf={league.nameOf} />
+                  <MatchCard key={i} match={{ ...m, id: String(i), estado: 'pendiente', sets: [], updatedAt: '', slot: null }} nameOf={league.nameOf} />
                 ))}
             </div>
           ))}

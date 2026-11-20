@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type Route = 'inicio' | 'clasificacion' | 'calendario' | 'estadisticas' | 'jugador' | 'admin';
-const ROUTES: Route[] = ['inicio', 'clasificacion', 'calendario', 'estadisticas', 'jugador', 'admin'];
+export type Route = 'inicio' | 'clasificacion' | 'partidos' | 'estadisticas' | 'jugador' | 'admin';
+const ROUTES: Route[] = ['inicio', 'clasificacion', 'partidos', 'estadisticas', 'jugador', 'admin'];
 
 export interface Location {
   route: Route;
@@ -10,7 +10,9 @@ export interface Location {
 }
 
 function parse(hash: string): Location {
-  const [route, param] = hash.replace(/^#\/?/, '').split('?')[0].split('/');
+  const [raw, param] = hash.replace(/^#\/?/, '').split('?')[0].split('/');
+  // «calendario» era la pestaña de antes: ahora sus partidos están en «partidos».
+  const route = raw === 'calendario' ? 'partidos' : raw;
   return ROUTES.includes(route as Route) ? { route: route as Route, param: param || null } : { route: 'inicio', param: null };
 }
 

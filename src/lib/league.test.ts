@@ -10,6 +10,7 @@ const match = (id: string, pair1: [string, string], pair2: [string, string], set
   pair2,
   estado,
   updatedAt: '2026-01-01T00:00:00Z',
+  slot: null,
   sets: sets.map(([pair1, pair2]) => ({ pair1, pair2 })),
 });
 

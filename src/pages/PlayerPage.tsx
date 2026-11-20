@@ -11,7 +11,7 @@ import type { League } from '../lib/useLeague';
 import { Delta } from './StatsPage';
 
 export function PlayerPage({ league, playerId }: { league: League; playerId: string | null }) {
-  const matches = useMemo(() => historyMatches(league.history), [league.history]);
+  const matches = useMemo(() => historyMatches(league.history, league.weeks), [league.history, league.weeks]);
   const elo = useMemo(() => computeElo(matches), [matches]);
   const medals = useMemo(() => medalTable(closedRounds(league.history)), [league.history]);
   const player = league.players.find((p) => p.id === playerId);
@@ -34,12 +34,13 @@ export function PlayerPage({ league, playerId }: { league: League; playerId: str
   const rank = ranking.findIndex(([id]) => id === player.id) + 1;
   const deltaByMatch = new Map((elo.changes.get(player.id) ?? []).map((c) => [c.matchId, c.delta]));
 
-  const allMatches = league.history.flatMap((data) => data.matches.map((m) => ({ match: m, round: data.round.numero })));
+  const allMatches = [...league.history.flatMap((d) => d.matches), ...league.weeks.flatMap((w) => w.matches)];
+  const labelOf = new Map(matches.map((m) => [m.id, m.label]));
   const recent = [...matches]
     .filter((m) => m.pair1.includes(player.id) || m.pair2.includes(player.id))
     .sort((a, b) => b.round - a.round || b.week - a.week || b.playedAt.localeCompare(a.playedAt))
     .slice(0, 5)
-    .map((m) => allMatches.find((x) => x.match.id === m.id)!)
+    .map((m) => allMatches.find((x) => x.id === m.id)!)
     .filter(Boolean);
 
   const myMedals = medals.find((row) => row.player === player.id);
@@ -124,8 +125,8 @@ export function PlayerPage({ league, playerId }: { league: League; playerId: str
 
           <section className="section">
             <h2 className="sectionTitle">Últimos partidos</h2>
-            {recent.map(({ match, round }) => (
-              <MatchCard key={match.id} match={match as RoundMatch} nameOf={league.nameOf} note={`V${round} · S${match.week}`}>
+            {recent.map((match) => (
+              <MatchCard key={match.id} match={match as RoundMatch} nameOf={league.nameOf} note={labelOf.get(match.id)}>
                 <Delta value={deltaByMatch.get(match.id) ?? null} />
               </MatchCard>
             ))}

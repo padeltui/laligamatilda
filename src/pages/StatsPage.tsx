@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Avatar } from '../components/Brand';
 import { PlayerLink } from '../components/PlayerLink';
 import { computeElo, ELO_K, ELO_START, SWEEP_BONUS } from '../domain/elo';
@@ -6,22 +6,11 @@ import { medalTable } from '../domain/medals';
 import { closedRounds, historyMatches } from '../lib/league';
 import type { League } from '../lib/useLeague';
 
-type Tab = 'medallero' | 'indice';
-
 export function StatsPage({ league }: { league: League }) {
-  const [tab, setTab] = useState<Tab>('medallero');
   return (
     <>
-      <div className="subTabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'medallero'} className={tab === 'medallero' ? 'active' : undefined} onClick={() => setTab('medallero')}>
-          Medallero
-        </button>
-        <button role="tab" aria-selected={tab === 'indice'} className={tab === 'indice' ? 'active' : undefined} onClick={() => setTab('indice')}>
-          Índice Matilda
-        </button>
-      </div>
-      {tab === 'medallero' ? <MedalTable league={league} /> : <EloRanking league={league} />}
-      <p className="legend">Pulsa en un jugador para ver su ficha.</p>
+      <MedalTable league={league} />
+      <p className="legend">Pulsa en un jugador para ver su ficha. El Índice Matilda está en Clasificación.</p>
     </>
   );
 }
@@ -93,8 +82,8 @@ function MedalTable({ league }: { league: League }) {
   );
 }
 
-function EloRanking({ league }: { league: League }) {
-  const { ratings, changes } = useMemo(() => computeElo(historyMatches(league.history)), [league.history]);
+export function EloRanking({ league }: { league: League }) {
+  const { ratings, changes } = useMemo(() => computeElo(historyMatches(league.history, league.weeks)), [league.history, league.weeks]);
 
   const rows = league.players
     .filter((p) => p.activo || ratings.has(p.id))

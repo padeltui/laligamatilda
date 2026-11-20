@@ -6,22 +6,45 @@ import { SEASON_POINTS, seasonStandings } from '../domain/season';
 import type { RoundData } from '../lib/db';
 import { boundaryOpen, categoryOf, groupMatches, GROUP_IDS, PROMOTIONS, roundStandings, seasonRounds, unplayedGroups } from '../lib/league';
 import type { League } from '../lib/useLeague';
+import { EloRanking } from './StatsPage';
 
-type Tab = 'vuelta' | 'temporada';
+type Tab = 'indice' | 'vuelta' | 'temporada';
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'indice', label: 'Índice Matilda' },
+  { id: 'vuelta', label: 'Vueltas' },
+  { id: 'temporada', label: 'Temporada' },
+];
+
+const ROUND_STATE_LABEL = { borrador: 'borrador', en_curso: 'en curso', cerrada: 'cerrada' } as const;
 
 export function StandingsPage({ league }: { league: League }) {
-  const [tab, setTab] = useState<Tab>('vuelta');
+  const [tab, setTab] = useState<Tab>('indice');
   return (
     <>
       <div className="subTabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'vuelta'} className={tab === 'vuelta' ? 'active' : undefined} onClick={() => setTab('vuelta')}>
-          Vuelta
-        </button>
-        <button role="tab" aria-selected={tab === 'temporada'} className={tab === 'temporada' ? 'active' : undefined} onClick={() => setTab('temporada')}>
-          Temporada
-        </button>
+        {TABS.map((t) => (
+          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'active' : undefined} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
       </div>
-      {tab === 'vuelta' ? <RoundStandings data={league.roundData} nameOf={league.nameOf} /> : <SeasonStandings league={league} />}
+      {tab === 'indice' && <EloRanking league={league} />}
+      {tab === 'vuelta' && (
+        <>
+          {league.rounds.length > 1 && (
+            <select className="seasonPicker" value={league.selectedRoundId ?? ''} onChange={(e) => league.selectRound(e.target.value)} aria-label="Vuelta">
+              {league.rounds.map((round) => (
+                <option key={round.id} value={round.id}>
+                  Vuelta {round.numero} · {ROUND_STATE_LABEL[round.estado]}
+                </option>
+              ))}
+            </select>
+          )}
+          <RoundStandings data={league.roundData} nameOf={league.nameOf} />
+        </>
+      )}
+      {tab === 'temporada' && <SeasonStandings league={league} />}
     </>
   );
 }

@@ -4,7 +4,8 @@ import { validateSets } from '../domain/scoring';
 import { groupStandings, type PlayedMatch, type StandingRow } from '../domain/standings';
 import type { SeasonRound } from '../domain/season';
 import type { Group, GroupId, HistoryMatch, PlayerId } from '../domain/types';
-import type { RoundData, RoundMatch } from './db';
+import { slotLabel } from '../domain/swiss';
+import type { RoundData, RoundMatch, WeekData } from './db';
 
 export const GROUP_IDS: GroupId[] = ['A', 'B', 'C'];
 
@@ -44,14 +45,50 @@ export function proposeNextGroups(data: RankingSource, order: ReadonlyMap<GroupI
   return nextGroups(data.groups, order, PROMOTIONS, unplayedGroups(data));
 }
 
-/** Todos los partidos con resultado, para Elo y estadísticas. */
-export function historyMatches(history: readonly RoundData[]): HistoryMatch[] {
-  return history.flatMap((data) =>
+/**
+ * Los partidos de la liga suiza se ordenan después de los de las vueltas: la semana n
+ * cuenta como la «vuelta» SWISS_ROUND_OFFSET + n a efectos de orden cronológico.
+ */
+export const SWISS_ROUND_OFFSET = 1000;
+
+/** Todos los partidos con resultado (vueltas y semanas), para Elo, estadísticas e histórico. */
+export function historyMatches(history: readonly RoundData[], weeks: readonly WeekData[] = []): HistoryMatch[] {
+  const fromRounds = history.flatMap((data) =>
     playedMatches(data.matches).map((match) => {
       const m = match as RoundMatch;
-      return { id: m.id, round: data.round.numero, week: m.week, playedAt: m.updatedAt, pair1: m.pair1, pair2: m.pair2, sets: m.sets };
+      return {
+        id: m.id, round: data.round.numero, week: m.week, playedAt: m.updatedAt, pair1: m.pair1, pair2: m.pair2, sets: m.sets,
+        label: `Vuelta ${data.round.numero} · S${m.week}`,
+      };
     }),
   );
+  const fromWeeks = weeks.flatMap((data) =>
+    playedMatches(data.matches).map((match) => {
+      const m = match as RoundMatch;
+      return {
+        id: m.id, round: SWISS_ROUND_OFFSET + data.week.numero, week: 1, playedAt: m.updatedAt, pair1: m.pair1, pair2: m.pair2, sets: m.sets,
+        label: `Semana ${data.week.numero}${m.slot ? ` · ${slotLabel(m.slot)}` : ''}`,
+      };
+    }),
+  );
+  return [...fromRounds, ...fromWeeks];
+}
+
+/** La semana con inscripción abierta o, si no hay, la más reciente. */
+export function currentWeek(weeks: readonly WeekData[]): WeekData | null {
+  return weeks.find((w) => w.week.estado === 'abierta') ?? weeks[0] ?? null;
+}
+
+/** Fecha concreta de una franja: sábado o domingo de la semana que empieza el lunes `fechaInicio`. */
+export function slotDate(fechaInicio: string, slot: string): Date {
+  const date = new Date(`${fechaInicio}T12:00:00`);
+  date.setDate(date.getDate() + (slot.startsWith('sab') ? 5 : 6));
+  return date;
+}
+
+export function formatSlot(fechaInicio: string, slot: string): string {
+  const day = slotDate(fechaInicio, slot).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} · ${slot.endsWith('manana') ? 'mañana' : 'tarde'}`;
 }
 
 /** Vueltas cerradas con su orden final (de todas las temporadas, o de una si se indica). */
