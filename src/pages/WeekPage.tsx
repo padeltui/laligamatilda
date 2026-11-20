@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Avatar, LEAGUE_NAME, Logo } from '../components/Brand';
+import { CategoryBadge } from '../components/CategoryBadge';
+import { CategoryMoves } from '../components/CategoryMoves';
 import { MatchCard } from '../components/MatchCard';
+import { categoryMoves } from '../domain/categories';
 import { Modal } from '../components/Modal';
 import { PlayerLink } from '../components/PlayerLink';
 import { ResultForm } from '../components/ResultForm';
 import { WeekMatchEditor } from '../components/WeekMatchEditor';
 import { SLOTS } from '../domain/swiss';
 import { signUp, type RoundMatch, type WeekData } from '../lib/db';
-import { currentWeek, errorMessage, formatSlot, slotDate } from '../lib/league';
+import { currentWeek, errorMessage, formatSlot, slotDate, weekCategories } from '../lib/league';
 import type { League } from '../lib/useLeague';
 import type { Route } from '../lib/useRoute';
 
@@ -44,7 +47,10 @@ export function WeekPage({ league, isAdmin, navigate }: Props) {
               </button>
             )}
           </section>
-        ) : data.week.estado === 'abierta' ? (
+        ) : (
+          <WeekMoves league={league} />
+        )}
+        {!data ? null : data.week.estado === 'abierta' ? (
           <>
             <SignUpCard data={data} league={league} isAdmin={isAdmin} />
             <SignedUpList data={data} nameOf={league.nameOf} />
@@ -199,6 +205,7 @@ function SignedUpList({ data, nameOf }: { data: WeekData; nameOf: (id: string) =
                       <span className="personChip">
                         <Avatar id={p} name={nameOf(p)} />
                         {nameOf(p)}
+                        <CategoryBadge category={data.categories.get(p)?.category} />
                       </span>
                     </PlayerLink>
                   ))}
@@ -265,3 +272,16 @@ function PublishedWeek({ data, league, isAdmin }: { data: WeekData; league: Leag
   );
 }
 
+
+/** Ascensos y descensos de categoría respecto a la semana anterior. */
+function WeekMoves({ league }: { league: League }) {
+  const { current, previous } = weekCategories(league.weeks);
+  const moves = categoryMoves(previous, current);
+  if (moves.length === 0) return null;
+  return (
+    <section className="card movesCard">
+      <h2>Movimientos de la semana</h2>
+      <CategoryMoves moves={moves} nameOf={league.nameOf} />
+    </section>
+  );
+}

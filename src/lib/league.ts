@@ -4,6 +4,7 @@ import { validateSets } from '../domain/scoring';
 import { groupStandings, type PlayedMatch, type StandingRow } from '../domain/standings';
 import type { SeasonRound } from '../domain/season';
 import type { Group, GroupId, HistoryMatch, PlayerId } from '../domain/types';
+import { categoryRanking, type CategoryEntry } from '../domain/categories';
 import { slotLabel } from '../domain/swiss';
 import type { RoundData, RoundMatch, WeekData } from './db';
 
@@ -186,4 +187,17 @@ export function latestResults(matches: readonly RoundMatch[], limit: number): Ro
     .filter((m) => m.estado === 'jugado' && validateSets(m.sets) === null)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .slice(0, limit);
+}
+
+/** Categorías de la semana actual y de la anterior (para los ascensos y descensos). */
+export function weekCategories(weeks: readonly WeekData[]): { current: Map<PlayerId, CategoryEntry>; previous: Map<PlayerId, CategoryEntry> } {
+  const withCategories = weeks.filter((w) => w.categories.size > 0);
+  return { current: withCategories[0]?.categories ?? new Map(), previous: withCategories[1]?.categories ?? new Map() };
+}
+
+/** Semanas con su foto de categorías, en el formato del medallero. */
+export function weeklyMedalRounds(weeks: readonly WeekData[]): SeasonRound[] {
+  return weeks
+    .filter((w) => w.categories.size > 0)
+    .map((w) => ({ round: SWISS_ROUND_OFFSET + w.week.numero, ranking: categoryRanking(w.categories) }));
 }

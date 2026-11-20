@@ -310,6 +310,9 @@ button.link { border: 0; background: none; padding: 0; color: var(--court); font
 .legacy[open] summary { margin-bottom: 12px; }
 .legacy .card { border-style: dashed; }
 
+.categoryBadge { font-size: .85rem; line-height: 1; }
+.movesCard h2 { margin-bottom: 6px; }
+
 /* ---------- Navegación ---------- */
 .bottomNav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 5;

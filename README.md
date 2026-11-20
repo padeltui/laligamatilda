@@ -12,6 +12,10 @@ calendario generado automáticamente con parejas que rotan y clasificación indi
   - da prioridad a quien se quedó sin jugar la semana anterior;
   - junta jugadores de Índice Matilda parecido y equilibra las parejas sin repetir compañero reciente.
 - La clasificación principal es el **Índice Matilda**, que continúa desde las vueltas.
+- **Categorías (solo etiqueta)**: al abrir cada semana se fija la categoría de cada jugador según el índice:
+  los 4 primeros 🥇 Oro, los 4 siguientes 🥈 Plata y el resto 🥉 Bronce. Inicio muestra quién sube y baja,
+  y el medallero cuenta las semanas en cada categoría. El organizador de partidos no las tiene en cuenta.
+- Requiere ejecutar también `005_categorias_semana.sql`.
 - El PIN se guarda cifrado en la base de datos y lo cambia el admin desde Admin.
 - Requiere ejecutar `supabase/migrations/004_liga_suiza.sql` (solo añade tablas y funciones).
 

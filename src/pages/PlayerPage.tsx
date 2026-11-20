@@ -6,14 +6,14 @@ import { computeElo, ELO_START } from '../domain/elo';
 import { medalTable } from '../domain/medals';
 import { MIN_SHARED_MATCHES, playerStats, type HeadToHead } from '../domain/playerStats';
 import type { RoundMatch } from '../lib/db';
-import { categoryOf, closedRounds, historyMatches, trajectory } from '../lib/league';
+import { categoryOf, closedRounds, historyMatches, trajectory, weekCategories, weeklyMedalRounds } from '../lib/league';
 import type { League } from '../lib/useLeague';
 import { Delta } from './StatsPage';
 
 export function PlayerPage({ league, playerId }: { league: League; playerId: string | null }) {
   const matches = useMemo(() => historyMatches(league.history, league.weeks), [league.history, league.weeks]);
   const elo = useMemo(() => computeElo(matches), [matches]);
-  const medals = useMemo(() => medalTable(closedRounds(league.history)), [league.history]);
+  const medals = useMemo(() => medalTable([...closedRounds(league.history), ...weeklyMedalRounds(league.weeks)]), [league.history, league.weeks]);
   const player = league.players.find((p) => p.id === playerId);
 
   if (!player) {
@@ -27,8 +27,18 @@ export function PlayerPage({ league, playerId }: { league: League; playerId: str
   }
 
   const stats = playerStats(player.id, matches);
-  const steps = trajectory(player.id, league.history);
-  const current = steps.at(-1);
+  // Trayectoria: vueltas (grupo y puesto) y después semanas de la liga suiza (categoría y puesto en el índice).
+  const steps = [
+    ...trajectory(player.id, league.history).map((s) => ({ key: `v${s.round}`, label: `V${s.round}`, group: s.group, position: s.position, final: s.final })),
+    ...[...league.weeks]
+      .reverse()
+      .filter((w) => w.categories.has(player.id))
+      .map((w) => {
+        const entry = w.categories.get(player.id)!;
+        return { key: `s${w.week.numero}`, label: `S${w.week.numero}`, group: entry.category, position: entry.position, final: true };
+      }),
+  ];
+  const current = weekCategories(league.weeks).current.get(player.id)?.category ?? steps.at(-1)?.group;
   const rating = elo.ratings.get(player.id) ?? ELO_START;
   const ranking = [...elo.ratings.entries()].sort((a, b) => b[1] - a[1]);
   const rank = ranking.findIndex(([id]) => id === player.id) + 1;
@@ -59,8 +69,8 @@ export function PlayerPage({ league, playerId }: { league: League; playerId: str
         <div>
           <h2>{player.nombre}</h2>
           {current && (
-            <span className={`chip chip-${current.group}`}>
-              {categoryOf(current.group).medal} {categoryOf(current.group).name}
+            <span className={`chip chip-${current}`}>
+              {categoryOf(current).medal} {categoryOf(current).name}
             </span>
           )}
         </div>
@@ -82,8 +92,8 @@ export function PlayerPage({ league, playerId }: { league: League; playerId: str
           </h2>
           <div className="trajectory">
             {steps.map((step) => (
-              <span key={step.round} className={`trajectoryStep tone-${categoryOf(step.group).tone}${step.final ? '' : ' provisional'}`} title={step.final ? undefined : 'Vuelta en curso (provisional)'}>
-                <small>V{step.round}</small>
+              <span key={step.key} className={`trajectoryStep tone-${categoryOf(step.group).tone}${step.final ? '' : ' provisional'}`} title={step.final ? undefined : 'Vuelta en curso (provisional)'}>
+                <small>{step.label}</small>
                 <span>{categoryOf(step.group).medal}</span>
                 <strong>{step.position}º</strong>
               </span>

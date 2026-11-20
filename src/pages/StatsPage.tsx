@@ -3,7 +3,8 @@ import { Avatar } from '../components/Brand';
 import { PlayerLink } from '../components/PlayerLink';
 import { computeElo, ELO_K, ELO_START, SWEEP_BONUS } from '../domain/elo';
 import { medalTable } from '../domain/medals';
-import { closedRounds, historyMatches } from '../lib/league';
+import { CategoryBadge } from '../components/CategoryBadge';
+import { closedRounds, historyMatches, weekCategories, weeklyMedalRounds } from '../lib/league';
 import type { League } from '../lib/useLeague';
 
 export function StatsPage({ league }: { league: League }) {
@@ -16,8 +17,9 @@ export function StatsPage({ league }: { league: League }) {
 }
 
 function MedalTable({ league }: { league: League }) {
-  const rows = useMemo(() => medalTable(closedRounds(league.history)), [league.history]);
+  const rows = useMemo(() => medalTable([...closedRounds(league.history), ...weeklyMedalRounds(league.weeks)]), [league.history, league.weeks]);
   const rounds = league.history.filter((d) => d.round.estado === 'cerrada').length;
+  const weeks = weeklyMedalRounds(league.weeks).length;
 
   return (
     <>
@@ -26,7 +28,7 @@ function MedalTable({ league }: { league: League }) {
           <span className="medal">🏅</span>
           <strong>Medallero</strong>
           <small>
-            histórico · {rounds} {rounds === 1 ? 'vuelta' : 'vueltas'}
+            histórico · {rounds} {rounds === 1 ? 'vuelta' : 'vueltas'} y {weeks} {weeks === 1 ? 'semana' : 'semanas'}
           </small>
         </header>
         {rows.length === 0 ? (
@@ -74,9 +76,9 @@ function MedalTable({ league }: { league: League }) {
         )}
       </section>
       <p className="legend">
-        🥇 🥈 🥉 = vueltas jugadas en Oro, Plata y Bronce. ⭐ = veces 1º de su grupo; entre paréntesis, en Oro. Orden como en las
+        🥇 🥈 🥉 = vueltas jugadas en Oro, Plata y Bronce, y semanas de la liga suiza en cada categoría. ⭐ = veces 1º de su grupo; entre paréntesis, en Oro. Orden como en las
         olimpiadas: más 🥇; a igualdad, más 🥈; luego más 🥉. Si siguen empatados, deciden los ⭐ en Oro y después la posición media.
-        Solo cuentan las vueltas cerradas.
+        Solo cuentan las vueltas cerradas; las semanas, con la categoría fijada al abrirlas.
       </p>
     </>
   );
@@ -84,6 +86,7 @@ function MedalTable({ league }: { league: League }) {
 
 export function EloRanking({ league }: { league: League }) {
   const { ratings, changes } = useMemo(() => computeElo(historyMatches(league.history, league.weeks)), [league.history, league.weeks]);
+  const categories = weekCategories(league.weeks).current;
 
   const rows = league.players
     .filter((p) => p.activo || ratings.has(p.id))
@@ -126,6 +129,7 @@ export function EloRanking({ league }: { league: League }) {
                         <span className="playerCell">
                           <Avatar id={row.player.id} name={row.player.nombre} />
                           <span>{row.player.nombre}</span>
+                          <CategoryBadge category={categories.get(row.player.id)?.category} />
                         </span>
                       </PlayerLink>
                     </td>

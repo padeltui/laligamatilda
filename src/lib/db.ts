@@ -1,3 +1,4 @@
+import type { CategoryEntry } from '../domain/categories';
 import type { Group, GroupId, PlayerId, ScheduledMatch, SetScore } from '../domain/types';
 import { supabase } from './supabase';
 
@@ -227,16 +228,20 @@ export interface WeekData {
   week: Week;
   /** Franjas de cada apuntado. */
   availability: Map<PlayerId, string[]>;
+  /** Categoría de cada jugador esa semana (foto tomada al abrirla). */
+  categories: Map<PlayerId, CategoryEntry>;
   matches: RoundMatch[];
 }
 
 /** Todas las semanas con su disponibilidad y sus partidos, de la más reciente a la más antigua. */
 export async function fetchWeeks(): Promise<WeekData[]> {
-  const [weekResult, availabilityResult, matchResult] = await Promise.all([
+  const [weekResult, availabilityResult, matchResult, categoryResult] = await Promise.all([
     client().from('semanas').select('id, numero, fecha_inicio, estado').order('numero', { ascending: false }),
     client().from('disponibilidad').select('semana_id, jugador_id, franja'),
     client().from('partidos').select(MATCH_COLUMNS).not('semana_id', 'is', null),
+    client().from('semana_categorias').select('semana_id, jugador_id, categoria, posicion'),
   ]);
+  const categories = unwrap<{ semana_id: string; jugador_id: string; categoria: string; posicion: number }[]>(categoryResult);
   const weeks = unwrap<Week[]>(weekResult);
   const availability = unwrap<{ semana_id: string; jugador_id: string; franja: string }[]>(availabilityResult);
   const matches = unwrap<MatchRow[]>(matchResult);
@@ -245,12 +250,23 @@ export async function fetchWeeks(): Promise<WeekData[]> {
     for (const row of availability.filter((r) => r.semana_id === week.id)) {
       byPlayer.set(row.jugador_id, [...(byPlayer.get(row.jugador_id) ?? []), row.franja]);
     }
-    return { week, availability: byPlayer, matches: matches.filter((m) => m.semana_id === week.id).map(toMatch) };
+    return {
+      week,
+      availability: byPlayer,
+      categories: new Map(
+        categories
+          .filter((c) => c.semana_id === week.id)
+          .map((c) => [c.jugador_id, { category: c.categoria, position: c.posicion }]),
+      ),
+      matches: matches.filter((m) => m.semana_id === week.id).map(toMatch),
+    };
   });
 }
 
-export async function openWeek(fechaInicio: string): Promise<void> {
-  unwrap(await client().rpc('abrir_semana', { p_fecha_inicio: fechaInicio }));
+/** Abre la inscripción de una semana guardando la foto de categorías de ese momento. */
+export async function openWeek(fechaInicio: string, categories: ReadonlyMap<PlayerId, CategoryEntry>): Promise<void> {
+  const p_categorias = [...categories].map(([jugador_id, c]) => ({ jugador_id, categoria: c.category, posicion: c.position }));
+  unwrap(await client().rpc('abrir_semana', { p_fecha_inicio: fechaInicio, p_categorias }));
 }
 
 /** Guarda las franjas de un jugador en la semana abierta; con una lista vacía lo desapunta. */

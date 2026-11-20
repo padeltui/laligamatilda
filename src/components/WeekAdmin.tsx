@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { computeElo } from '../domain/elo';
 import { leftOut, organizeWeek, recentPartnerCounts, SLOTS, type SlotId, type SwissResult } from '../domain/swiss';
 import { changePin, hasPin, openWeek, publishWeek, unpublishWeek, type WeekData } from '../lib/db';
-import { currentWeek, errorMessage, formatSlot, historyMatches } from '../lib/league';
+import { categorize, categoryMoves } from '../domain/categories';
+import { categoryOf, currentWeek, errorMessage, formatSlot, historyMatches, weekCategories } from '../lib/league';
+import { CategoryMoves } from './CategoryMoves';
 import type { League } from '../lib/useLeague';
 import { MatchCard } from './MatchCard';
 
@@ -28,6 +30,12 @@ export function WeekAdmin({ league }: { league: League }) {
 function OpenWeek({ league, last }: { league: League; last: WeekData | null }) {
   const [date, setDate] = useState(nextMonday());
   const [error, setError] = useState<string | null>(null);
+  // Foto de categorías que se guardará al abrir: Índice Matilda de ahora mismo.
+  const categories = useMemo(() => {
+    const ratings = computeElo(historyMatches(league.history, league.weeks)).ratings;
+    return categorize(league.players.filter((p) => p.activo), ratings);
+  }, [league.history, league.weeks, league.players]);
+  const moves = categoryMoves(weekCategories(league.weeks).current, categories);
   const hasResults = last?.matches.some((m) => m.sets.length > 0) ?? false;
 
   const run = async (action: () => Promise<void>) => {
@@ -49,13 +57,20 @@ function OpenWeek({ league, last }: { league: League; last: WeekData | null }) {
           {!hasResults && ' Si hay que rehacerlos, puedes despublicarla (aún no tiene resultados).'}
         </p>
       )}
+      <p className="muted">
+        Al abrir se fijan las categorías de la semana según el Índice Matilda:{' '}
+        {(['A', 'B', 'C'] as const)
+          .map((c) => `${categoryOf(c).medal} ${[...categories].filter(([, e]) => e.category === c).length}`)
+          .join(' · ')}
+      </p>
+      <CategoryMoves moves={moves} nameOf={league.nameOf} />
       <label className="field">
         Lunes de la semana a abrir
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
       {error && <p className="error">{error}</p>}
       <div className="buttons">
-        <button className="primary" disabled={!date} onClick={() => run(() => openWeek(date))}>
+        <button className="primary" disabled={!date} onClick={() => run(() => openWeek(date, categories))}>
           Abrir inscripción {last ? `de la semana ${last.week.numero + 1}` : 'de la primera semana'}
         </button>
         {last && !hasResults && (
