@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Avatar } from '../components/Brand';
 import { PlayerLink } from '../components/PlayerLink';
-import { computeElo, ELO_K, ELO_START, SWEEP_BONUS } from '../domain/elo';
+import { computeElo, ELO_K, ELO_START } from '../domain/elo';
 import { medalTable } from '../domain/medals';
 import { CategoryBadge } from '../components/CategoryBadge';
 import { closedRounds, historyMatches, weekCategories, weeklyMedalRounds } from '../lib/league';
@@ -159,7 +159,8 @@ export function EloRanking({ league }: { league: League }) {
             Por eso cuenta tu pareja: ganar con alguien muy fuerte al lado suma menos que ganar con alguien flojo.
           </li>
           <li>
-            En un partido se pueden ganar o perder como mucho {ELO_K} puntos; ganar 2-0 da un {Math.round((SWEEP_BONUS - 1) * 100)} % más.
+            También cuenta el resultado: cuanta más diferencia de juegos, más se mueve. Entre parejas iguales, ganar 6-3 6-3 da{' '}
+            {ELO_K / 2} puntos; por la mínima (6-4 5-7 7-6), unos 12; y con una paliza (6-0 6-0), unos 21.
           </li>
           <li>No se reinicia con las temporadas: mide el nivel histórico de cada uno.</li>
         </ul>

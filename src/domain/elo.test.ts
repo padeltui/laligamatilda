@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeElo, ELO_K, ELO_START, expectedScore, SWEEP_BONUS } from './elo';
+import { computeElo, ELO_K, ELO_START, expectedScore, marginFactor } from './elo';
 import type { HistoryMatch } from './types';
 
 let n = 0;
@@ -21,16 +21,36 @@ describe('expectedScore', () => {
 });
 
 describe('computeElo', () => {
-  it('todos empiezan en 1000; entre iguales, ganar 2-1 da +16 y perder -16', () => {
-    const { ratings } = computeElo([m(['a', 'b'], ['c', 'd'], [[6, 4], [4, 6], [6, 4]])]);
+  it('todos empiezan en 1000; entre iguales, ganar 6-3 6-3 da +16 y perder -16', () => {
+    const { ratings } = computeElo([m(['a', 'b'], ['c', 'd'], [[6, 3], [6, 3]])]);
     expect(ratings.get('a')).toBeCloseTo(ELO_START + ELO_K / 2);
     expect(ratings.get('b')).toBeCloseTo(ELO_START + ELO_K / 2);
     expect(ratings.get('c')).toBeCloseTo(ELO_START - ELO_K / 2);
   });
 
-  it('ganar 2-0 da un 20 % más', () => {
-    const { ratings } = computeElo([m(['a', 'b'], ['c', 'd'], [[6, 4], [6, 4]])]);
-    expect(ratings.get('a')).toBeCloseTo(ELO_START + (ELO_K / 2) * SWEEP_BONUS);
+  it('cuenta la diferencia de juegos: un partido ajustado mueve menos que una paliza', () => {
+    const close = computeElo([m(['a', 'b'], ['c', 'd'], [[6, 4], [5, 7], [7, 6]])]);
+    const rout = computeElo([m(['a', 'b'], ['c', 'd'], [[6, 1], [6, 1]])]);
+    expect(close.ratings.get('a')).toBeCloseTo(ELO_START + 12);
+    expect(close.ratings.get('c')).toBeCloseTo(ELO_START - 12);
+    expect(rout.ratings.get('a')).toBeCloseTo(ELO_START + 19.2);
+    expect(rout.ratings.get('c')).toBeCloseTo(ELO_START - 19.2);
+  });
+
+  it('el factor de juegos va de 0,75 (un juego) a 1,3 (tope de 12 juegos)', () => {
+    const f = (sets: [number, number][]) => marginFactor(sets.map(([pair1, pair2]) => ({ pair1, pair2 })));
+    expect(f([[6, 4], [5, 7], [7, 6]])).toBeCloseTo(0.75);
+    expect(f([[6, 4], [6, 4]])).toBeCloseTo(0.9);
+    expect(f([[6, 3], [6, 3]])).toBeCloseTo(1);
+    expect(f([[6, 0], [6, 0]])).toBeCloseTo(1.3);
+    // Da igual quién gane: es la diferencia en valor absoluto.
+    expect(f([[1, 6], [1, 6]])).toBeCloseTo(f([[6, 1], [6, 1]]));
+  });
+
+  it('quien gana siempre suma, aunque gane por la mínima siendo favorito', () => {
+    const setup = m(['a', 'b'], ['x', 'y'], [[6, 0], [6, 0]]);
+    const { changes } = computeElo([setup, m(['a', 'b'], ['c', 'd'], [[6, 4], [5, 7], [7, 6]])]);
+    expect(changes.get('a')!.at(-1)!.delta).toBeGreaterThan(0);
   });
 
   it('tiene en cuenta al compañero: ganar con uno fuerte suma menos', () => {
