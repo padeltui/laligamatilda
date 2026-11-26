@@ -1,38 +1,42 @@
 import { ELO_START } from './elo';
 import type { GroupId, PlayerId } from './types';
 
-/** Cuántos jugadores hay en Oro y en Plata; el resto, Bronce. */
-export const CATEGORY_CUTS = [4, 4];
+/** Cuántos puestos hay en Oro, Plata y Bronce; el resto se queda sin categoría. */
+export const CATEGORY_CUTS = [3, 3, 3];
 const CATEGORY_IDS: GroupId[] = ['A', 'B', 'C'];
 
 export interface CategoryEntry {
   category: GroupId;
-  /** Puesto en el ranking del Índice Matilda. */
+  /** Puesto en el ranking del Índice Matilda (los empatados comparten puesto). */
   position: number;
 }
 
 /**
- * Reparte a los jugadores en Oro (A), Plata (B) y Bronce (C) según el Índice Matilda:
- * los 4 primeros Oro, los 4 siguientes Plata y el resto Bronce. A igualdad de índice, por nombre.
+ * Reparte a los jugadores en Oro (A), Plata (B) y Bronce (C) según el Índice Matilda
+ * (redondeado, como se ve en la web): los 3 primeros Oro, los 3 siguientes Plata y los
+ * 3 siguientes Bronce; el resto no tiene categoría. Los empatados comparten puesto, así
+ * que si un empate cae en un corte, todos se quedan en la categoría más alta.
  */
 export function categorize(
   players: readonly { id: PlayerId; nombre: string }[],
   ratings: ReadonlyMap<PlayerId, number>,
 ): Map<PlayerId, CategoryEntry> {
-  const ordered = [...players].sort(
-    (a, b) => (ratings.get(b.id) ?? ELO_START) - (ratings.get(a.id) ?? ELO_START) || a.nombre.localeCompare(b.nombre),
-  );
-  return new Map(
-    ordered.map((player, i) => {
-      let level = 0;
-      let limit = CATEGORY_CUTS[0];
-      while (level < CATEGORY_CUTS.length && i >= limit) {
-        level += 1;
-        limit += CATEGORY_CUTS[level] ?? Infinity;
-      }
-      return [player.id, { category: CATEGORY_IDS[level], position: i + 1 }];
-    }),
-  );
+  const score = (id: PlayerId) => Math.round(ratings.get(id) ?? ELO_START);
+  const ordered = [...players].sort((a, b) => score(b.id) - score(a.id) || a.nombre.localeCompare(b.nombre));
+  const result = new Map<PlayerId, CategoryEntry>();
+  let position = 0;
+  ordered.forEach((player, i) => {
+    // Puesto de competición: los empatados comparten el puesto del primero de ellos.
+    if (i === 0 || score(ordered[i - 1].id) !== score(player.id)) position = i + 1;
+    let level = 0;
+    let limit = CATEGORY_CUTS[0];
+    while (level < CATEGORY_CUTS.length && position > limit) {
+      level += 1;
+      limit += CATEGORY_CUTS[level] ?? 0;
+    }
+    if (level < CATEGORY_CUTS.length) result.set(player.id, { category: CATEGORY_IDS[level], position });
+  });
+  return result;
 }
 
 export interface CategoryMove {

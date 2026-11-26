@@ -3,59 +3,41 @@ import type { PlayerId } from './types';
 
 export interface MedalRow {
   player: PlayerId;
-  /** Vueltas en el 1er grupo (Oro), 2º (Plata) y 3º (Bronce). */
+  /** Vueltas o semanas en Oro, Plata y Bronce. */
   gold: number;
   silver: number;
   bronze: number;
-  /** Vueltas terminadas 1º de su grupo, en cualquier grupo. */
-  titles: number;
-  /** Vueltas terminadas 1º del grupo Oro. */
-  goldTitles: number;
-  /** Posición media dentro de su grupo. */
-  averagePosition: number;
   position: number;
   tiedWithPrevious: boolean;
 }
 
+const LEVEL: Record<string, 'gold' | 'silver' | 'bronze'> = { A: 'gold', B: 'silver', C: 'bronze' };
+
 /**
- * Medallero histórico, como en las olimpiadas: manda el número de vueltas en Oro,
- * luego en Plata y luego en Bronce. Si siguen empatados, deciden los títulos en Oro
- * (vueltas ganadas en Oro) y después la posición media.
+ * Medallero histórico, como en las olimpiadas: manda el número de vueltas o semanas en Oro,
+ * luego en Plata y luego en Bronce. Con las mismas medallas, empate.
  */
 export function medalTable(rounds: readonly SeasonRound[]): MedalRow[] {
-  const rows = new Map<PlayerId, MedalRow & { positionSum: number }>();
+  const rows = new Map<PlayerId, MedalRow>();
 
   for (const { ranking, unplayed } of rounds) {
-    const groupIds = [...ranking.keys()].sort();
-    groupIds.forEach((groupId, level) => {
-      if (unplayed?.has(groupId)) return;
-      ranking.get(groupId)!.forEach((player, i) => {
-        const row = rows.get(player) ?? {
-          player, gold: 0, silver: 0, bronze: 0, titles: 0, goldTitles: 0,
-          averagePosition: 0, position: 0, tiedWithPrevious: false, positionSum: 0,
-        };
-        if (level === 0) row.gold += 1;
-        else if (level === 1) row.silver += 1;
-        else row.bronze += 1;
-        if (i === 0) {
-          row.titles += 1;
-          if (level === 0) row.goldTitles += 1;
-        }
-        row.positionSum += i + 1;
+    for (const [groupId, players] of ranking) {
+      const medal = LEVEL[groupId];
+      if (!medal || unplayed?.has(groupId)) continue;
+      for (const player of players) {
+        const row = rows.get(player) ?? { player, gold: 0, silver: 0, bronze: 0, position: 0, tiedWithPrevious: false };
+        row[medal] += 1;
         rows.set(player, row);
-      });
-    });
+      }
+    }
   }
 
-  const compare = (a: MedalRow, b: MedalRow) =>
-    b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze || b.goldTitles - a.goldTitles || a.averagePosition - b.averagePosition;
-
-  const sorted = [...rows.values()]
-    .map(({ positionSum, ...row }) => ({ ...row, averagePosition: positionSum / (row.gold + row.silver + row.bronze) }))
-    .sort((a, b) => compare(a, b) || a.player.localeCompare(b.player));
+  const compare = (a: MedalRow, b: MedalRow) => b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze;
+  const sorted = [...rows.values()].sort((a, b) => compare(a, b) || a.player.localeCompare(b.player));
   sorted.forEach((row, i) => {
-    row.position = i + 1;
     row.tiedWithPrevious = i > 0 && compare(sorted[i - 1], row) === 0;
+    // Los empatados comparten puesto.
+    row.position = row.tiedWithPrevious ? sorted[i - 1].position : i + 1;
   });
   return sorted;
 }

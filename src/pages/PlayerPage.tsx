@@ -86,7 +86,7 @@ export function PlayerPage({ league, playerId }: { league: League; playerId: str
             Trayectoria
             {myMedals && (
               <span className="medalSummary" title={`Medallero: ${myMedals.position}º`}>
-                🥇{myMedals.gold} 🥈{myMedals.silver} 🥉{myMedals.bronze} ⭐{myMedals.titles}
+                🥇{myMedals.gold} 🥈{myMedals.silver} 🥉{myMedals.bronze}
               </span>
             )}
           </h2>

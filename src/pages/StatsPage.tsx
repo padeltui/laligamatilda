@@ -4,7 +4,8 @@ import { PlayerLink } from '../components/PlayerLink';
 import { computeElo, ELO_K, ELO_START } from '../domain/elo';
 import { medalTable } from '../domain/medals';
 import { CategoryBadge } from '../components/CategoryBadge';
-import { closedRounds, historyMatches, weekCategories, weeklyMedalRounds } from '../lib/league';
+import { categorize } from '../domain/categories';
+import { closedRounds, historyMatches, weeklyMedalRounds } from '../lib/league';
 import type { League } from '../lib/useLeague';
 
 export function StatsPage({ league }: { league: League }) {
@@ -32,7 +33,7 @@ function MedalTable({ league }: { league: League }) {
           </small>
         </header>
         {rows.length === 0 ? (
-          <p className="emptyLine inCard">El medallero arranca cuando se cierre la primera vuelta.</p>
+          <p className="emptyLine inCard">El medallero arranca con la primera semana.</p>
         ) : (
           <div className="tableWrap">
             <table className="standings medalTable">
@@ -40,10 +41,9 @@ function MedalTable({ league }: { league: League }) {
                 <tr>
                   <th>#</th>
                   <th className="left">Jugador</th>
-                  <th title="Vueltas en Oro">🥇</th>
-                  <th title="Vueltas en Plata">🥈</th>
-                  <th title="Vueltas en Bronce">🥉</th>
-                  <th title="Veces 1º de su grupo (entre paréntesis, en Oro)">⭐</th>
+                  <th title="Vueltas y semanas en Oro">🥇</th>
+                  <th title="Vueltas y semanas en Plata">🥈</th>
+                  <th title="Vueltas y semanas en Bronce">🥉</th>
                 </tr>
               </thead>
               <tbody>
@@ -64,10 +64,6 @@ function MedalTable({ league }: { league: League }) {
                     <td className={row.gold ? 'wins' : 'zero'}>{row.gold}</td>
                     <td className={row.silver ? undefined : 'zero'}>{row.silver}</td>
                     <td className={row.bronze ? undefined : 'zero'}>{row.bronze}</td>
-                    <td className={row.titles ? undefined : 'zero'}>
-                      {row.titles}
-                      {row.goldTitles > 0 && <small className="goldTitles"> ({row.goldTitles})</small>}
-                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -76,9 +72,9 @@ function MedalTable({ league }: { league: League }) {
         )}
       </section>
       <p className="legend">
-        🥇 🥈 🥉 = vueltas jugadas en Oro, Plata y Bronce, y semanas de la liga suiza en cada categoría. ⭐ = veces 1º de su grupo; entre paréntesis, en Oro. Orden como en las
-        olimpiadas: más 🥇; a igualdad, más 🥈; luego más 🥉. Si siguen empatados, deciden los ⭐ en Oro y después la posición media.
-        Solo cuentan las vueltas cerradas; las semanas, con la categoría fijada al abrirlas.
+        🥇 🥈 🥉 = semanas de la liga suiza en Oro, Plata y Bronce (y vueltas jugadas en cada grupo del sistema anterior). Cada semana, según el
+        Índice Matilda al abrirla: los 3 primeros Oro, los 3 siguientes Plata y los 3 siguientes Bronce; si hay empate en un corte, todos los
+        empatados suben. Orden como en las olimpiadas: más 🥇; a igualdad, más 🥈; luego más 🥉. Con las mismas medallas, empate.
       </p>
     </>
   );
@@ -86,7 +82,8 @@ function MedalTable({ league }: { league: League }) {
 
 export function EloRanking({ league }: { league: League }) {
   const { ratings, changes } = useMemo(() => computeElo(historyMatches(league.history, league.weeks)), [league.history, league.weeks]);
-  const categories = weekCategories(league.weeks).current;
+  // Categoría según el índice de ahora mismo, para que siempre cuadre con la tabla.
+  const categories = categorize(league.players.filter((p) => p.activo), ratings);
 
   const rows = league.players
     .filter((p) => p.activo || ratings.has(p.id))

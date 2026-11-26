@@ -9,11 +9,11 @@ describe('medalTable', () => {
     round(2, ['marcos', 'lucia', 'ivan', 'x1'], ['x2', 'y1', 'y2', 'y3'], ['z1', 'z2', 'z3', 'z4']),
   ];
 
-  it('cuenta vueltas en cada grupo y títulos', () => {
+  it('cuenta vueltas en cada grupo', () => {
     const marcos = medalTable(rounds).find((r) => r.player === 'marcos')!;
-    expect(marcos).toMatchObject({ gold: 2, silver: 0, bronze: 0, titles: 2, goldTitles: 2, averagePosition: 1 });
+    expect(marcos).toMatchObject({ gold: 2, silver: 0, bronze: 0 });
     const ivan = medalTable(rounds).find((r) => r.player === 'ivan')!;
-    expect(ivan).toMatchObject({ gold: 1, silver: 1, bronze: 0, titles: 1, goldTitles: 0, averagePosition: 2 });
+    expect(ivan).toMatchObject({ gold: 1, silver: 1, bronze: 0 });
   });
 
   it('ordena como en las olimpiadas: un oro vale más que muchas platas', () => {
@@ -27,24 +27,20 @@ describe('medalTable', () => {
     expect(pos('a')).toBeLessThan(pos('b'));
   });
 
-  it('a igualdad de medallas deciden los títulos en Oro', () => {
+  it('con las mismas medallas hay empate y comparten puesto', () => {
     const table = medalTable(rounds);
-    // marcos y lucia: 2 oros cada uno; marcos ganó el Oro las dos veces.
-    expect(table[0].player).toBe('marcos');
-    expect(table[1].player).toBe('lucia');
-    expect(table[1].tiedWithPrevious).toBe(false);
+    // marcos, lucia y x1: 2 oros cada uno; ivan y x2: 1 oro y 1 plata.
+    expect(table.slice(0, 3).map((r) => r.player).sort()).toEqual(['lucia', 'marcos', 'x1']);
+    expect(table.slice(0, 3).map((r) => r.position)).toEqual([1, 1, 1]);
+    expect(table[1].tiedWithPrevious).toBe(true);
+    expect(table[3].position).toBe(4);
   });
 
-  it('marca empate total (mismas medallas, títulos y posición media)', () => {
-    // p y q: 2 bronces, sin títulos, posiciones 3º+4º y 4º+3º → media 3,5.
-    const table = medalTable([
-      round(1, ['a1', 'a2', 'a3', 'a4'], ['b1', 'b2', 'b3', 'b4'], ['c1', 'c2', 'p', 'q']),
-      round(2, ['a1', 'a2', 'a3', 'a4'], ['b1', 'b2', 'b3', 'b4'], ['c1', 'c2', 'q', 'p']),
-    ]);
-    const tied = table.filter((r) => r.player === 'p' || r.player === 'q');
-    expect(tied.map((r) => r.averagePosition)).toEqual([3.5, 3.5]);
-    expect(tied[1].tiedWithPrevious).toBe(true);
-    expect(tied[0].position + 1).toBe(tied[1].position);
+  it('quien no tiene categoría esa semana no suma medalla', () => {
+    const week = { round: 1001, ranking: new Map([['A', ['a']], ['B', ['b']], ['C', ['c']]]) };
+    const table = medalTable([week]);
+    expect(table.map((r) => r.player)).toEqual(['a', 'b', 'c']);
+    expect(table.find((r) => r.player === 'c')).toMatchObject({ gold: 0, silver: 0, bronze: 1 });
   });
 
   it('sin vueltas cerradas está vacío', () => {
